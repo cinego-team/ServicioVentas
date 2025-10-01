@@ -8,7 +8,7 @@ export class DisponibilidadButacaService{
       return response.status === 200; // si existe, retorna true
     } catch (error: any) {
       if (error.response && error.response.status === 404) {
-        return false; // no existe la promoción
+        return false; 
       }
       throw new Error('Error al consultar el microservicio de disponibilidad de butacas');
     }
