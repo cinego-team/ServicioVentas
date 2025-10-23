@@ -1,0 +1,19 @@
+export const config = {
+    APIPromocionesUrls: {
+        baseUrl: 'http://localhost:3000',
+        verificarPromocionById: (id: number) =>
+            `/promociones/verificar-promocion/${id}`,
+    },
+    APIFuncionesUrls: {
+        baseUrl: 'http://localhost:3001',
+        obtenerPrecioEntradaByFuncionId: (id: number) =>
+            `/funciones/precio-entrada/${id}`,
+        reservarButacasByIds: '/funciones/reservar-butacas',
+        getDatosFuncionById: (id: number) => `/funciones/datos-funcion/${id}`,
+        ocuparButacasByIds: '/funciones/ocupar-butacas',
+    },
+    APIIntegracionMPUrls: {
+        baseUrl: 'http://localhost:3002',
+        abrirCobro: '/cobros/abrir-cobro',
+    },
+};
