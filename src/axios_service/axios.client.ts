@@ -60,3 +60,11 @@ axiosAPIIntegracionMP.interceptors.request.use((config) => {
 
     return config;
 });
+
+export const axiosAPIEnviarMails = axios.create({
+    baseURL: config.APIEnviarMailsUrls.baseUrl,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
+

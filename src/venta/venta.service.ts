@@ -16,6 +16,7 @@ import {
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
+    axiosAPIEnviarMails,
     axiosAPIFunciones,
     axiosAPIIntegracionMP,
     axiosAPIPromociones,
@@ -23,6 +24,7 @@ import {
 import { config } from '../axios_service/env';
 import { EstadoVenta } from 'src/entities/estadoVenta.entity';
 import { EntradaService } from 'src/entrada/entrada.service';
+import { generarQR } from './services/qr.service';
 
 @Injectable()
 export class VentaService {
@@ -34,7 +36,7 @@ export class VentaService {
         private readonly entradaRepo: Repository<Entrada>,
         @InjectRepository(EstadoVenta)
         private readonly estadoRepo: Repository<EstadoVenta>,
-    ) {}
+    ) { }
 
     // Listar todas las ventas
     /*
@@ -174,44 +176,63 @@ export class VentaService {
             );
         }
     }
+
     async cerrarVenta(data: CerrarVentaInput): Promise<void> {
         if (data.status === 'approved') {
-            const entradas =
-                await this.entradaService.crearEntradasPorDisponibilidadButacaIds(
-                    data.disponibilidadButacaIds,
-                );
-            if (!entradas) {
-                throw new InternalServerErrorException(
-                    'Error al crear las entradas',
-                );
-            }
             const venta: Venta | null = await this.ventaRepo.findOne({
                 where: {
                     nroVenta: data.ventaId,
                 },
                 relations: ['estadoVenta', 'entradas'],
             });
+
             if (!venta) {
                 throw new InternalServerErrorException('Venta no encontrada');
             }
+
+            const entradas =
+                await this.entradaService.crearEntradasPorDisponibilidadButacaIds(
+                    data.disponibilidadButacaIds,
+                );
+
+            if (!entradas) {
+                throw new InternalServerErrorException(
+                    'Error al crear las entradas',
+                );
+            }
+
             const estadoConfirmada = await this.estadoRepo.findOneBy({
                 nombre: 'APROBADA',
             });
+
             if (!estadoConfirmada) {
                 throw new InternalServerErrorException(
                     'Estado de venta APROBADA no encontrado',
                 );
             }
+
             venta.estadoVenta = estadoConfirmada;
             venta.entradas = entradas;
             await this.ventaRepo.save(venta);
+
             //ocupar las butacas
             axiosAPIFunciones.post(config.APIFuncionesUrls.ocuparButacasByIds, {
                 body: {
                     disponibilidaButacasIds: data.disponibilidadButacaIds,
                 },
             });
+
             //generar qr y enviarlas via email
+            const qrBase64 = await generarQR('Aca va un string');
+            axiosAPIEnviarMails.post(config.APIEnviarMailsUrls, {
+                body: {
+                    titulo: "ver como conseguir",
+                    fecha: "ver como conseguir",
+                    hora: "ver como conseguir",
+                    destinatario: "ver como conseguir",
+                    qr: qrBase64
+                }
+            })
         }
     }
 }

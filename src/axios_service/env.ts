@@ -16,4 +16,8 @@ export const config = {
         baseUrl: 'http://localhost:3002',
         abrirCobro: '/cobros/abrir-cobro',
     },
+    APIEnviarMailsUrls: {
+        baseUrl: 'http://localhost:3003',
+        sendMail: '/mails/send',
+    }
 };
