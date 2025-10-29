@@ -32,8 +32,6 @@ export class VentaService {
         private readonly entradaService: EntradaService,
         @InjectRepository(Venta)
         private readonly ventaRepo: Repository<Venta>,
-        @InjectRepository(Entrada)
-        private readonly entradaRepo: Repository<Entrada>,
         @InjectRepository(EstadoVenta)
         private readonly estadoRepo: Repository<EstadoVenta>,
     ) { }
@@ -100,16 +98,19 @@ export class VentaService {
                     },
                 },
             );
+
             //buscamos la promocion con mayor porcentaje (id y porcentaje)
             const promocionValida: PromocionDTO = await axiosAPIPromociones.get(
                 config.APIPromocionesUrls.verificarPromocionById(user.id),
             );
+
             //obtenemos el precio de las entradas
             const precioEntradas: number = await axiosAPIFunciones.get(
                 config.APIFuncionesUrls.obtenerPrecioEntradaByFuncionId(
                     dato.funcionId,
                 ),
             );
+
             //comenzamos a obtener el total
             let total: number = 0;
             if (dato.disponibilidaButacaIds.length === 1) {
@@ -137,8 +138,8 @@ export class VentaService {
             }
 
             const nuevaVenta = this.ventaRepo.create({
-                hora: new Date().toISOString().split('T')[1],
-                fecha: new Date(),
+                // hora: null //new Date().toISOString().split('T')[1],
+                // fecha: null //new Date(),
                 total: total,
                 promocionId: promocionValida.id,
                 estadoVenta: estadoPendiente,
@@ -162,8 +163,6 @@ export class VentaService {
             );
             const respuesta: VentaResponse = {
                 nroVenta: ventaGuardada.nroVenta,
-                fecha: ventaGuardada.fecha,
-                hora: ventaGuardada.hora,
                 total: ventaGuardada.total,
                 promocionId: ventaGuardada.promocionId,
                 urlPagoMP: datosMP.init_point,
@@ -190,7 +189,7 @@ export class VentaService {
                 throw new InternalServerErrorException('Venta no encontrada');
             }
 
-            const entradas =
+            const entradas: Entrada[] =
                 await this.entradaService.crearEntradasPorDisponibilidadButacaIds(
                     data.disponibilidadButacaIds,
                 );
@@ -211,6 +210,9 @@ export class VentaService {
                 );
             }
 
+
+            venta.hora = new Date().toISOString().split('T')[1];
+            venta.fecha = new Date();
             venta.estadoVenta = estadoConfirmada;
             venta.entradas = entradas;
             await this.ventaRepo.save(venta);
@@ -223,16 +225,23 @@ export class VentaService {
             });
 
             //generar qr y enviarlas via email
-            const qrBase64 = await generarQR('Aca va un string');
-            axiosAPIEnviarMails.post(config.APIEnviarMailsUrls, {
+            const textosQR = entradas.map((entrada) => {
+                return entrada.codigoSeguridad;
+            });
+
+            // Generar todos los QR
+            const qrBase64 = await Promise.all(textosQR.map(async (texto) => {
+                return await generarQR(texto);
+            }));
+            axiosAPIEnviarMails.post(config.APIEnviarMailsUrls.sendMail, {
                 body: {
-                    titulo: "ver como conseguir",
-                    fecha: "ver como conseguir",
-                    hora: "ver como conseguir",
+                    titulo: data.titulo,
+                    fecha: data.fechaFuncion,
+                    hora: data.horaFuncion,
                     destinatario: "ver como conseguir",
-                    qr: qrBase64
+                    qrs: qrBase64,
                 }
-            })
+            });
         }
     }
 }

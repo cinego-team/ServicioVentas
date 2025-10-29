@@ -15,10 +15,10 @@ export class Venta extends BaseEntity {
     nroVenta: number;
 
     @Column()
-    hora: string;
+    hora?: string;
 
     @Column({ type: 'date' })
-    fecha: Date;
+    fecha?: Date;
     @Column()
     total: number;
 

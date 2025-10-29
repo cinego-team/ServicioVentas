@@ -1,14 +1,9 @@
 export class VentaInput {
-    // fecha: string;      // ISO string
-    // hora: string;       // ISO string o 'HH:mm:ss'
-    // total: number;
     disponibilidaButacaIds: number[];
     funcionId: number;
 }
 export class VentaResponse {
     nroVenta: number;
-    fecha: Date;
-    hora: string;
     total: number;
     promocionId: number;
     urlPagoMP?: string;
@@ -34,6 +29,9 @@ export class CerrarVentaInput {
     ventaId: number;
     usuarioId: number;
     disponibilidadButacaIds: number[];
+    titulo: string;
+    fechaFuncion: string;
+    horaFuncion: string;
 }
 
 //hola ramiro, aca esta el cambio
