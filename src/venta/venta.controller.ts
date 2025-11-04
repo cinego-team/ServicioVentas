@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Get, Param, Req } from '@nestjs/common';
 import { VentaService } from './venta.service';
-import { CerrarVentaInput, VentaInput } from './dto';
+import { CerrarVentaInput, RequestWithUser, VentaInput } from './dto';
 
 @Controller('venta')
 export class VentaController {
@@ -18,8 +18,8 @@ export class VentaController {
     }
 */
     @Post('abrir-venta')
-    abrirVenta(@Req() req: Request, @Body() dato: VentaInput) {
-        return this.ventaService.abrirVenta(req, dato);
+    abrirVenta(@Req() req: RequestWithUser, @Body() dato: VentaInput) {
+        return this.ventaService.abrirVenta(req.user, dato);
     }
     @Post('cerrar-venta/:id')
     cerrarVenta(@Param('id') id: number, @Body() data: CerrarVentaInput) {

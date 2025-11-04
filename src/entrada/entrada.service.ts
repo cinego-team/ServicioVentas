@@ -21,15 +21,9 @@ export class EntradaService {
 
 
             // Crear la instancia
-            const entrada = this.entradaRepo.create({ token, codigoSeguridad: '', esUsado: false, disponibilidadButacaId, expiracion });
+            const entrada = this.entradaRepo.create({ token, esUsado: false, disponibilidadButacaId, expiracion });
 
             // Guardarla (ahora tendrá un id)
-            await this.entradaRepo.save(entrada);
-
-            // Generar el código usando el id recién asignado
-            entrada.codigoSeguridad = `${entrada.id}-${entrada.disponibilidadButacaId}`;
-
-            // Actualizar la entrada con el código
             await this.entradaRepo.save(entrada);
 
             console.log(entrada);

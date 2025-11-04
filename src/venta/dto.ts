@@ -33,5 +33,22 @@ export class CerrarVentaInput {
     fechaFuncion: string;
     horaFuncion: string;
 }
-
-//hola ramiro, aca esta el cambio
+export class RequestWithUser extends Request {
+    user?: UserDto;
+}
+class UserDto {
+    id: number;
+    email: string;
+}
+export class DatosUsuario {
+    id: number;
+    nombre: string;
+    apellido: string;
+    email: string;
+    fechaNacimiento: Date;
+    nroTelefono: string;
+    tipoCliente: {
+        denominacion: string;
+        descripcion: string;
+    };
+}

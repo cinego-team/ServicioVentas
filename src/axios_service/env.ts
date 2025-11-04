@@ -19,5 +19,9 @@ export const config = {
     APIEnviarMailsUrls: {
         baseUrl: 'http://localhost:3003',
         sendMail: '/mails/send',
+    },
+    APIUsuariosUrls: {
+        baseUrl: 'http://localhost:3004',
+        getDatosBlienteById: (id: number) => `/microservicio-usuarios/datos-cliente/${id}`
     }
 };

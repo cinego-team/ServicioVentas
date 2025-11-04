@@ -12,6 +12,7 @@ import {
     PromocionDTO,
     DatosMP,
     CerrarVentaInput,
+    DatosUsuario,
 } from './dto';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -20,6 +21,7 @@ import {
     axiosAPIFunciones,
     axiosAPIIntegracionMP,
     axiosAPIPromociones,
+    axiosAPIUsuarios,
 } from '../axios_service/axios.client';
 import { config } from '../axios_service/env';
 import { EstadoVenta } from 'src/entities/estadoVenta.entity';
@@ -211,8 +213,6 @@ export class VentaService {
                 );
             }
 
-
-            venta.hora = new Date().toISOString().split('T')[1];
             venta.fecha = new Date();
             venta.estadoVenta = estadoConfirmada;
             venta.entradas = entradas;
@@ -225,17 +225,21 @@ export class VentaService {
                 },
             });
 
-            //generar qr y enviarlas via email
+            //obtener tokens de entrada para generar qr
             const textosQR: string[] = entradas.map((entrada) => {
                 return entrada.token;
             });
 
+            //obtener email de usuario
+            const datosUsuario: DatosUsuario = await axiosAPIUsuarios.get(config.APIUsuariosUrls.getDatosBlienteById(data.usuarioId))
+
+            //enviar mail con datos de envío y contenido.
             axiosAPIEnviarMails.post(config.APIEnviarMailsUrls.sendMail, {
                 body: {
                     titulo: data.titulo,
                     fecha: data.fechaFuncion.split('T')[0],
                     hora: data.horaFuncion.split('T')[1],
-                    destinatario: "ver como conseguir",
+                    destinatario: datosUsuario.email,
                     qrs: textosQR,
                 }
             });

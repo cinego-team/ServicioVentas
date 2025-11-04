@@ -9,23 +9,20 @@ import {
 import { Entrada } from './entrada.entity';
 import { EstadoVenta } from './estadoVenta.entity';
 
-@Entity('Venta')
+@Entity('venta')
 export class Venta extends BaseEntity {
     @PrimaryGeneratedColumn()
     nroVenta: number;
 
     @Column()
-    hora?: string;
+    fecha: Date;
 
-    @Column({ type: 'date' })
-    fecha?: Date;
     @Column()
     total: number;
 
-    @OneToMany(() => Entrada, (entrada) => entrada.venta, {
-        cascade: true, // permite guardar entradas junto con la venta
-    })
+    @OneToMany(() => Entrada, (entrada) => entrada.venta)
     entradas: Entrada[];
+
     // Solo guardamos el ID de la promoción
     @Column({ type: 'int', nullable: true })
     promocionId: number;

@@ -68,3 +68,9 @@ export const axiosAPIEnviarMails = axios.create({
     },
 });
 
+export const axiosAPIUsuarios = axios.create({
+    baseURL: config.APIUsuariosUrls.baseUrl,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});

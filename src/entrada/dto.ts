@@ -1,5 +1,6 @@
-export class EntradaInput {
-    DisponibilidadButacaId: number;
+export class CrearEntradaInputDto {
+    disponibilidadButacaIds: number[];
+    expiracion: Date;
 }
 export class EntradaResponse {
     id: number;
