@@ -145,6 +145,7 @@ export class VentaService {
                 total: total,
                 promocionId: promocionValida.id,
                 estadoVenta: estadoPendiente,
+                cliente: user.id
             });
             const ventaGuardada = await this.ventaRepo.save(nuevaVenta);
 

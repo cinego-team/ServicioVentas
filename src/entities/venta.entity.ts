@@ -29,4 +29,7 @@ export class Venta extends BaseEntity {
 
     @ManyToOne(() => EstadoVenta)
     estadoVenta: EstadoVenta;
+
+    @Column()
+    cliente: number;
 }
