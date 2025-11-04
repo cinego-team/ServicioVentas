@@ -11,7 +11,7 @@ export class EntradaService {
     constructor(
         @InjectRepository(Entrada)
         private readonly entradaRepo: Repository<Entrada>,
-    ) { }
+    ) {}
 
     async crearEntradasPorDisponibilidadButacaIds(
         disponibilidadButacaIds: number[],
@@ -19,7 +19,10 @@ export class EntradaService {
         const entradas: Entrada[] = [];
         for (const disponibilidadButacaId of disponibilidadButacaIds) {
             // Crear la instancia
-            const entrada = this.entradaRepo.create({ disponibilidadButacaId, codigoSeguridad: '' });
+            const entrada = this.entradaRepo.create({
+                disponibilidadButacaId,
+                codigoSeguridad: '',
+            });
 
             // Guardarla (ahora tendrá un id)
             await this.entradaRepo.save(entrada);
@@ -27,7 +30,7 @@ export class EntradaService {
             // Generar el código usando el id recién asignado
             entrada.codigoSeguridad = bcrypt.hashSync(
                 `${entrada.id}-${entrada.disponibilidadButacaId}`,
-                10
+                10,
             );
 
             // Actualizar la entrada con el código
