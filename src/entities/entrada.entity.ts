@@ -7,6 +7,9 @@ export class Entrada extends BaseEntity {
     id: number;
 
     @Column()
+    token: string;
+
+    @Column()
     codigoSeguridad: string;
 
     @Column({ type: 'int', nullable: false })

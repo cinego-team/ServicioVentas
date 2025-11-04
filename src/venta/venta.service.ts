@@ -230,9 +230,10 @@ export class VentaService {
             });
 
             // Generar todos los QR
-            const qrBase64 = await Promise.all(textosQR.map(async (texto) => {
+            const qrBase64: string[] = await Promise.all(textosQR.map(async (texto) => {
                 return await generarQR(texto);
             }));
+
             axiosAPIEnviarMails.post(config.APIEnviarMailsUrls.sendMail, {
                 body: {
                     titulo: data.titulo,
