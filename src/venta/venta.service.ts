@@ -192,6 +192,7 @@ export class VentaService {
             const entradas: Entrada[] =
                 await this.entradaService.crearEntradasPorDisponibilidadButacaIds(
                     data.disponibilidadButacaIds,
+                    new Date(data.fechaFuncion)
                 );
 
             if (!entradas) {
@@ -225,22 +226,17 @@ export class VentaService {
             });
 
             //generar qr y enviarlas via email
-            const textosQR = entradas.map((entrada) => {
-                return entrada.codigoSeguridad;
+            const textosQR: string[] = entradas.map((entrada) => {
+                return entrada.token;
             });
-
-            // Generar todos los QR
-            const qrBase64: string[] = await Promise.all(textosQR.map(async (texto) => {
-                return await generarQR(texto);
-            }));
 
             axiosAPIEnviarMails.post(config.APIEnviarMailsUrls.sendMail, {
                 body: {
                     titulo: data.titulo,
-                    fecha: data.fechaFuncion,
-                    hora: data.horaFuncion,
+                    fecha: data.fechaFuncion.split('T')[0],
+                    hora: data.horaFuncion.split('T')[1],
                     destinatario: "ver como conseguir",
-                    qrs: qrBase64,
+                    qrs: textosQR,
                 }
             });
         }

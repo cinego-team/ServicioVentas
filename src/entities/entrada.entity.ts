@@ -12,6 +12,12 @@ export class Entrada extends BaseEntity {
     @Column()
     codigoSeguridad: string;
 
+    @Column()
+    esUsado: boolean;
+
+    @Column()
+    expiracion: Date;
+
     @Column({ type: 'int', nullable: false })
     disponibilidadButacaId: number;
 
