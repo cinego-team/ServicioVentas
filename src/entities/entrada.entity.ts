@@ -9,16 +9,16 @@ export class Entrada extends BaseEntity {
     @Column()
     token: string;
 
-    @Column()
+    @Column({ name: 'es_usado' })
     esUsado: boolean;
 
     @Column()
     expiracion: Date;
 
-    @Column({ type: 'int', nullable: false })
+    @Column({ type: 'int', nullable: false, name: 'disponibilidad_butaca_id' })
     disponibilidadButacaId: number;
 
     @ManyToOne(() => Venta, venta => venta.entradas, { nullable: false })
-    @JoinColumn({ name: 'nroVenta' })
+    @JoinColumn({ name: 'venta_id' })
     venta: Venta;
 }
