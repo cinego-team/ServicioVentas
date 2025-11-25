@@ -6,7 +6,7 @@ export class Entrada extends BaseEntity {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column()
+    @Column({ type: 'varchar', length: 255 })
     token: string;
 
     @Column({ name: 'es_usado' })

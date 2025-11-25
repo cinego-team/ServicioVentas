@@ -5,7 +5,7 @@ import { Venta } from './venta.entity';
 export class EstadoVenta extends BaseEntity {
     @PrimaryGeneratedColumn()
     id: number;
-    @Column()
+    @Column({ type: 'varchar', length: 100 })
     nombre: string;
     @OneToMany(() => Venta, venta => venta.estadoVenta)
     ventas: Venta[];
