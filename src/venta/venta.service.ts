@@ -36,7 +36,7 @@ export class VentaService {
         private readonly ventaRepo: Repository<Venta>,
         @InjectRepository(EstadoVenta)
         private readonly estadoRepo: Repository<EstadoVenta>,
-    ) { }
+    ) {}
 
     // Listar todas las ventas
     /*
@@ -145,7 +145,9 @@ export class VentaService {
                 total: total,
                 promocionId: promocionValida.id,
                 estadoVenta: estadoPendiente,
-                cliente: user.id
+                cliente: user.id,
+                fechaFuncion: datoFuncion.fechaFuncion,
+                horaFuncion: datoFuncion.horaFuncion,
             });
             const ventaGuardada = await this.ventaRepo.save(nuevaVenta);
 
@@ -195,7 +197,7 @@ export class VentaService {
             const entradas: Entrada[] =
                 await this.entradaService.crearEntradasPorDisponibilidadButacaIds(
                     data.disponibilidadButacaIds,
-                    new Date(data.fechaFuncion)
+                    new Date(data.fechaFuncion),
                 );
 
             if (!entradas) {
@@ -232,7 +234,9 @@ export class VentaService {
             });
 
             //obtener email de usuario
-            const datosUsuario: DatosUsuario = await axiosAPIUsuarios.get(config.APIUsuariosUrls.getDatosBlienteById(data.usuarioId))
+            const datosUsuario: DatosUsuario = await axiosAPIUsuarios.get(
+                config.APIUsuariosUrls.getDatosBlienteById(data.usuarioId),
+            );
 
             //enviar mail con datos de envío y contenido.
             axiosAPIEnviarMails.post(config.APIEnviarMailsUrls.sendMail, {
@@ -242,8 +246,61 @@ export class VentaService {
                     hora: data.horaFuncion.split('T')[1],
                     destinatario: datosUsuario.email,
                     qrs: textosQR,
-                }
+                },
             });
         }
+    }
+    // Reporte: top 5 horarios más elegidos del mes
+    async getHorariosMasElegidos() {
+        const hoy = new Date();
+        const mes = hoy.getMonth() + 1; // Enero = 0, por eso +1
+        const anio = hoy.getFullYear();
+        return await this.ventaRepo
+            .createQueryBuilder('venta')
+            .select('venta.hora_funcion', 'hora')
+            .addSelect('COUNT(*)', 'cantidad')
+            .where('EXTRACT(MONTH FROM venta.fecha_funcion) = :mes', { mes })
+            .andWhere('EXTRACT(YEAR FROM venta.fecha_funcion) = :anio', {
+                anio,
+            })
+            .groupBy('venta.hora_funcion')
+            .orderBy('cantidad', 'DESC')
+            .limit(5)
+            .getRawMany();
+    }
+    // Reporte: cantidad de entradas vendidas por día de la semana en el mes actual
+    async getEntradasPorDiaSemanaMesActual(): Promise<any[]> {
+        const ahora = new Date();
+        const mesActual = ahora.getMonth() + 1;
+        const anioActual = ahora.getFullYear();
+
+        return await this.ventaRepo
+            .createQueryBuilder('v')
+            .innerJoin('v.estadoVenta', 'estado')
+            .innerJoin('v.entradas', 'e')
+            .select("TRIM(TO_CHAR(v.fechaFuncion, 'TMDay')) AS dia_semana")
+            .addSelect('COUNT(e.id)', 'cantidad_entradas')
+            .where('estado.nombre = :estado', { estado: 'APROBADA' })
+            .andWhere('EXTRACT(MONTH FROM v.fechaFuncion) = :mes', {
+                mes: mesActual,
+            })
+            .andWhere('EXTRACT(YEAR FROM v.fechaFuncion) = :anio', {
+                anio: anioActual,
+            })
+            .groupBy('dia_semana')
+            .orderBy(
+                `
+            CASE 
+                WHEN TRIM(TO_CHAR(v.fechaFuncion, 'TMDay')) = 'Lunes' THEN 1
+                WHEN TRIM(TO_CHAR(v.fechaFuncion, 'TMDay')) = 'Martes' THEN 2
+                WHEN TRIM(TO_CHAR(v.fechaFuncion, 'TMDay')) = 'Miércoles' THEN 3
+                WHEN TRIM(TO_CHAR(v.fechaFuncion, 'TMDay')) = 'Jueves' THEN 4
+                WHEN TRIM(TO_CHAR(v.fechaFuncion, 'TMDay')) = 'Viernes' THEN 5
+                WHEN TRIM(TO_CHAR(v.fechaFuncion, 'TMDay')) = 'Sábado' THEN 6
+                WHEN TRIM(TO_CHAR(v.fechaFuncion, 'TMDay')) = 'Domingo' THEN 7
+            END
+        `,
+            )
+            .getRawMany();
     }
 }

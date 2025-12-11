@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, Req } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Req, Query } from '@nestjs/common';
 import { VentaService } from './venta.service';
 import { CerrarVentaInput, RequestWithUser, VentaInput } from './dto';
 
@@ -24,5 +24,13 @@ export class VentaController {
     @Post('cerrar-venta/:id')
     cerrarVenta(@Param('id') id: number, @Body() data: CerrarVentaInput) {
         return this.ventaService.cerrarVenta(data);
+    }
+    @Get('reportes/horarios-mas-elegidos/actual')
+    async getHorariosMasElegidos() {
+        return this.ventaService.getHorariosMasElegidos();
+    }
+    @Get('reportes/entradas-por-dia-semana/actual')
+    async getEntradasPorDiaSemanaMesActual() {
+        return await this.ventaService.getEntradasPorDiaSemanaMesActual();
     }
 }

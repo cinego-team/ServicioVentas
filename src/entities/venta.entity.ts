@@ -34,4 +34,10 @@ export class Venta extends BaseEntity {
 
     @Column({ type: 'int', name: 'cliente_id' })
     cliente: number;
+
+    @Column({ type: 'date', name: 'fecha_funcion' })
+    fechaFuncion: string;
+
+    @Column({ type: 'time', name: 'hora_funcion' })
+    horaFuncion: string;
 }
