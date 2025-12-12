@@ -250,24 +250,26 @@ export class VentaService {
             });
         }
     }
+
     // Reporte: top 5 horarios más elegidos del mes
     async getHorariosMasElegidos() {
         const hoy = new Date();
-        const mes = hoy.getMonth() + 1; // Enero = 0, por eso +1
+        const mes = hoy.getMonth() + 1;
         const anio = hoy.getFullYear();
+
         return await this.ventaRepo
             .createQueryBuilder('venta')
-            .select('venta.hora_funcion', 'hora')
+            .innerJoin('venta.funcion', 'funcion')
+            .select('EXTRACT(HOUR FROM funcion.fecha)', 'hora')
             .addSelect('COUNT(*)', 'cantidad')
-            .where('EXTRACT(MONTH FROM venta.fecha_funcion) = :mes', { mes })
-            .andWhere('EXTRACT(YEAR FROM venta.fecha_funcion) = :anio', {
-                anio,
-            })
-            .groupBy('venta.hora_funcion')
+            .where('EXTRACT(MONTH FROM funcion.fecha) = :mes', { mes })
+            .andWhere('EXTRACT(YEAR FROM funcion.fecha) = :anio', { anio })
+            .groupBy('hora')
             .orderBy('cantidad', 'DESC')
             .limit(5)
             .getRawMany();
     }
+
     // Reporte: cantidad de entradas vendidas por día de la semana en el mes actual
     async getEntradasPorDiaSemanaMesActual(): Promise<any[]> {
         const ahora = new Date();
@@ -278,26 +280,25 @@ export class VentaService {
             .createQueryBuilder('v')
             .innerJoin('v.estadoVenta', 'estado')
             .innerJoin('v.entradas', 'e')
-            .select("TRIM(TO_CHAR(v.fechaFuncion, 'TMDay')) AS dia_semana")
+            .innerJoin('v.funcion', 'f') // ← AQUI USAMOS LA FECHA REAL
+            .select("TRIM(TO_CHAR(f.fecha, 'TMDay')) AS dia_semana")
             .addSelect('COUNT(e.id)', 'cantidad_entradas')
             .where('estado.nombre = :estado', { estado: 'APROBADA' })
-            .andWhere('EXTRACT(MONTH FROM v.fechaFuncion) = :mes', {
-                mes: mesActual,
-            })
-            .andWhere('EXTRACT(YEAR FROM v.fechaFuncion) = :anio', {
+            .andWhere('EXTRACT(MONTH FROM f.fecha) = :mes', { mes: mesActual })
+            .andWhere('EXTRACT(YEAR FROM f.fecha) = :anio', {
                 anio: anioActual,
             })
             .groupBy('dia_semana')
             .orderBy(
                 `
             CASE 
-                WHEN TRIM(TO_CHAR(v.fechaFuncion, 'TMDay')) = 'Lunes' THEN 1
-                WHEN TRIM(TO_CHAR(v.fechaFuncion, 'TMDay')) = 'Martes' THEN 2
-                WHEN TRIM(TO_CHAR(v.fechaFuncion, 'TMDay')) = 'Miércoles' THEN 3
-                WHEN TRIM(TO_CHAR(v.fechaFuncion, 'TMDay')) = 'Jueves' THEN 4
-                WHEN TRIM(TO_CHAR(v.fechaFuncion, 'TMDay')) = 'Viernes' THEN 5
-                WHEN TRIM(TO_CHAR(v.fechaFuncion, 'TMDay')) = 'Sábado' THEN 6
-                WHEN TRIM(TO_CHAR(v.fechaFuncion, 'TMDay')) = 'Domingo' THEN 7
+                WHEN TRIM(TO_CHAR(f.fecha, 'TMDay')) = 'Lunes' THEN 1
+                WHEN TRIM(TO_CHAR(f.fecha, 'TMDay')) = 'Martes' THEN 2
+                WHEN TRIM(TO_CHAR(f.fecha, 'TMDay')) = 'Miércoles' THEN 3
+                WHEN TRIM(TO_CHAR(f.fecha, 'TMDay')) = 'Jueves' THEN 4
+                WHEN TRIM(TO_CHAR(f.fecha, 'TMDay')) = 'Viernes' THEN 5
+                WHEN TRIM(TO_CHAR(f.fecha, 'TMDay')) = 'Sábado' THEN 6
+                WHEN TRIM(TO_CHAR(f.fecha, 'TMDay')) = 'Domingo' THEN 7
             END
         `,
             )
