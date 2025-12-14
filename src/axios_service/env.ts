@@ -3,6 +3,7 @@ export const config = {
         baseUrl: 'http://localhost:3000',
         verificarPromocionById: (id: number) =>
             `/promociones/verificar-promocion/${id}`,
+        getPromocionById: (id: number) => `/promociones/${id}`,
     },
     APIFuncionesUrls: {
         baseUrl: 'http://localhost:3001',
@@ -22,6 +23,7 @@ export const config = {
     },
     APIUsuariosUrls: {
         baseUrl: 'http://localhost:3004',
-        getDatosBlienteById: (id: number) => `/microservicio-usuarios/datos-cliente/${id}`
-    }
+        getDatosClienteById: (id: number) =>
+            `/microservicio-usuarios/datos-cliente/${id}`,
+    },
 };

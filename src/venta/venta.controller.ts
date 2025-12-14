@@ -7,11 +7,12 @@ export class VentaController {
     constructor(private readonly ventaService: VentaService) {
         this.ventaService = ventaService;
     }
-    /*
-    @Get()
+
+    @Get('admin/all')
     findAllVenta() {
-        return this.ventaService.findAll();
+        return this.ventaService.getVentas();
     }
+    /*
     @Get(':id')
     getEntradaById(@Param('id') id: number) {
         return this.ventaService.getVentaById(id);

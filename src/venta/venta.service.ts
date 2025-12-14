@@ -13,6 +13,7 @@ import {
     DatosMP,
     CerrarVentaInput,
     DatosUsuario,
+    VentaResponseAdmin,
 } from './dto';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -235,7 +236,7 @@ export class VentaService {
 
             //obtener email de usuario
             const datosUsuario: DatosUsuario = await axiosAPIUsuarios.get(
-                config.APIUsuariosUrls.getDatosBlienteById(data.usuarioId),
+                config.APIUsuariosUrls.getDatosClienteById(data.usuarioId),
             );
 
             //enviar mail con datos de envío y contenido.
@@ -303,5 +304,57 @@ export class VentaService {
         `,
             )
             .getRawMany();
+    }
+    async getVentas(): Promise<VentaResponseAdmin[]> {
+        const ventas: Venta[] = await this.ventaRepo.find({
+            relations: ['estadoVenta', 'entradas'],
+        });
+
+        return Promise.all(
+            ventas.map(async (venta) => {
+                const { data: datosCliente } =
+                    await axiosAPIUsuarios.get<DatosUsuario>(
+                        config.APIUsuariosUrls.getDatosClienteById(
+                            venta.cliente,
+                        ),
+                    );
+
+                const datosPromocion = venta.promocionId
+                    ? (
+                          await axiosAPIPromociones.get(
+                              config.APIPromocionesUrls.getPromocionById(
+                                  venta.promocionId,
+                              ),
+                          )
+                      ).data
+                    : undefined;
+                return {
+                    nroVenta: venta.nroVenta,
+                    fecha: venta.fecha,
+                    total: venta.total,
+                    promocion: datosPromocion
+                        ? {
+                              id: datosPromocion.id,
+                              nombre: datosPromocion.nombre,
+                              porcentajeDescuento:
+                                  datosPromocion.porcentajeDescuento,
+                          }
+                        : undefined,
+                    cliente: {
+                        id: datosCliente.id,
+                        nombre: datosCliente.nombre,
+                        apellido: datosCliente.apellido,
+                        email: datosCliente.email,
+                    },
+                    estadoVenta: {
+                        nombre: venta.estadoVenta.nombre,
+                    },
+                    entradas: venta.entradas.map((entrada) => ({
+                        id: entrada.id,
+                        esUsado: entrada.esUsado,
+                    })),
+                };
+            }),
+        );
     }
 }

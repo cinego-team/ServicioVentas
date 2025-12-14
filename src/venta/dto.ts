@@ -52,3 +52,26 @@ export class DatosUsuario {
         descripcion: string;
     };
 }
+export class VentaResponseAdmin {
+    nroVenta: number;
+    fecha: Date;
+    total: number;
+    promocion?: {
+        id: number;
+        nombre: string;
+        porcentajeDescuento: number;
+    };
+    cliente: {
+        id: number;
+        nombre: string;
+        apellido: string;
+        email: string;
+    };
+    estadoVenta: {
+        nombre: string;
+    };
+    entradas: {
+        id: number;
+        esUsado: boolean;
+    }[];
+}
