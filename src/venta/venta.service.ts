@@ -357,4 +357,41 @@ export class VentaService {
             }),
         );
     }
+    //reporte trimestral de peliculas por rango de ventas
+    async getPeliculasPorRangoVentasTrimestral(
+        trimestre: number,
+        anio: number,
+    ): Promise<any[]> {
+        return await this.ventaRepo
+            .createQueryBuilder()
+            .select('rango')
+            .addSelect('COUNT(*)', 'cantidad_peliculas')
+            .from((subQuery) => {
+                return subQuery
+                    .select('p.id', 'pelicula_id')
+                    .addSelect(
+                        `
+                    CASE
+                        WHEN COUNT(e.id) <= 100 THEN 'Bajas ventas'
+                        WHEN COUNT(e.id) <= 500 THEN 'Ventas medias'
+                        ELSE 'Altas ventas'
+                    END
+                `,
+                        'rango',
+                    )
+                    .from('venta', 'v')
+                    .innerJoin('v.estadoVenta', 'estado')
+                    .innerJoin('v.entradas', 'e')
+                    .innerJoin('e.funcion', 'f')
+                    .innerJoin('f.pelicula', 'p')
+                    .where('estado.nombre = :estado', { estado: 'APROBADA' })
+                    .andWhere('EXTRACT(QUARTER FROM f.fecha) = :trimestre', {
+                        trimestre,
+                    })
+                    .andWhere('EXTRACT(YEAR FROM f.fecha) = :anio', { anio })
+                    .groupBy('p.id');
+            }, 'sub')
+            .groupBy('rango')
+            .getRawMany();
+    }
 }
