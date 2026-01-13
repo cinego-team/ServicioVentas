@@ -35,7 +35,7 @@ export class VentaController {
     async getEntradasPorDiaSemanaMesActual() {
         return await this.ventaService.getEntradasPorDiaSemanaMesActual();
     }
-    @Get('reportes/peliculas-rango-ventas/trimestral')
+    @Get('admin/reportes/peliculas-rango-ventas/trimestral')
     getPeliculasPorRangoVentasTrimestral(
         @Query(
             'trimestre',
