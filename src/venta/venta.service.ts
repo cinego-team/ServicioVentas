@@ -321,58 +321,7 @@ export class VentaService {
             )
             .getRawMany();
     }
-    async getVentas(): Promise<VentaResponseAdmin[]> {
-        const ventas: Venta[] = await this.ventaRepo.find({
-            relations: ['estadoVenta', 'entradas'],
-        });
 
-        return Promise.all(
-            ventas.map(async (venta) => {
-                const { data: datosCliente } =
-                    await axiosAPIUsuarios.get<DatosUsuario>(
-                        config.APIUsuariosUrls.getDatosClienteById(
-                            venta.cliente,
-                        ),
-                    );
-
-                const datosPromocion = venta.promocionId
-                    ? (
-                          await axiosAPIPromociones.get(
-                              config.APIPromocionesUrls.getPromocionById(
-                                  venta.promocionId,
-                              ),
-                          )
-                      ).data
-                    : undefined;
-                return {
-                    nroVenta: venta.nroVenta,
-                    fecha: venta.fecha,
-                    total: venta.total,
-                    promocion: datosPromocion
-                        ? {
-                              id: datosPromocion.id,
-                              nombre: datosPromocion.nombre,
-                              porcentajeDescuento:
-                                  datosPromocion.porcentajeDescuento,
-                          }
-                        : undefined,
-                    cliente: {
-                        id: datosCliente.id,
-                        nombre: datosCliente.nombre,
-                        apellido: datosCliente.apellido,
-                        email: datosCliente.email,
-                    },
-                    estadoVenta: {
-                        nombre: venta.estadoVenta.nombre,
-                    },
-                    entradas: venta.entradas.map((entrada) => ({
-                        id: entrada.id,
-                        esUsado: entrada.esUsado,
-                    })),
-                };
-            }),
-        );
-    }
     //reporte trimestral de peliculas por rango de ventas
     async getPeliculasPorRangoVentasTrimestral(
         trimestre: number,
@@ -409,5 +358,119 @@ export class VentaService {
             }, 'sub')
             .groupBy('rango')
             .getRawMany();
+    }
+    //GET VENTAS
+
+    async getVentas(): Promise<VentaResponseAdmin[]> {
+        const ventas = await this.ventaRepo.find({
+            relations: ['estadoVenta', 'entradas'],
+        });
+
+        return Promise.all(
+            ventas.map(async (venta): Promise<VentaResponseAdmin> => {
+                try {
+                    /* =========================
+         DATOS CLIENTE
+      ========================== */
+                    let cliente;
+
+                    try {
+                        const { data: datosUsuario } =
+                            await axiosAPIUsuarios.get<DatosUsuario>(
+                                config.APIUsuariosUrls.getDatosClienteById(
+                                    venta.cliente,
+                                ),
+                            );
+
+                        cliente = {
+                            id: datosUsuario.id,
+                            nombre: datosUsuario.nombre,
+                            apellido: datosUsuario.apellido,
+                            email: datosUsuario.email,
+                        };
+                    } catch (error) {
+                        console.error(
+                            `Error cliente ${venta.cliente}`,
+                            error.message,
+                        );
+
+                        cliente = {
+                            id: venta.cliente,
+                            nombre: 'DESCONOCIDO',
+                            apellido: '',
+                            email: '',
+                        };
+                    }
+
+                    /* =========================
+         PROMOCIÓN
+      ========================== */
+                    let promocion: VentaResponseAdmin['promocion'] = undefined;
+
+                    if (venta.promocionId) {
+                        try {
+                            const { data: datosPromocion } =
+                                await axiosAPIPromociones.get(
+                                    config.APIPromocionesUrls.getPromocionById(
+                                        venta.promocionId,
+                                    ),
+                                );
+
+                            promocion = {
+                                id: datosPromocion.id,
+                                nombre: datosPromocion.nombre,
+                                porcentajeDescuento:
+                                    datosPromocion.porcentajeDescuento,
+                            };
+                        } catch (error) {
+                            console.warn(
+                                `Promoción ${venta.promocionId} no encontrada`,
+                            );
+                        }
+                    }
+
+                    /* =========================
+         RESPUESTA
+      ========================== */
+                    return {
+                        nroVenta: venta.nroVenta,
+                        fecha: venta.fecha,
+                        total: venta.total,
+                        promocion,
+                        cliente,
+                        estadoVenta: {
+                            nombre: venta.estadoVenta.nombre,
+                        },
+                        entradas: (venta.entradas ?? []).map((entrada) => ({
+                            id: entrada.id,
+                            esUsado: entrada.esUsado,
+                        })),
+                    };
+                } catch (error) {
+                    console.error(
+                        `Error procesando venta ${venta.nroVenta}`,
+                        error,
+                    );
+
+                    // 👇 MUY IMPORTANTE: nunca lanzar error
+                    return {
+                        nroVenta: venta.nroVenta,
+                        fecha: venta.fecha,
+                        total: venta.total,
+                        promocion: undefined,
+                        cliente: {
+                            id: venta.cliente,
+                            nombre: 'ERROR',
+                            apellido: '',
+                            email: '',
+                        },
+                        estadoVenta: {
+                            nombre: venta.estadoVenta?.nombre ?? 'DESCONOCIDO',
+                        },
+                        entradas: [],
+                    };
+                }
+            }),
+        );
     }
 }
