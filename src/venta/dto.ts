@@ -1,5 +1,5 @@
 export class VentaInput {
-    disponibilidaButacaIds: number[];
+    disponibilidadButacaIds: number[];
     funcionId: number;
 }
 export class VentaResponse {

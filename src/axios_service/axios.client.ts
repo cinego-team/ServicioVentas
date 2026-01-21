@@ -8,19 +8,6 @@ export const axiosAPIPromociones = axios.create({
     },
 });
 
-axiosAPIPromociones.interceptors.request.use((config) => {
-    const token = localStorage.getItem('access_token');
-    const refreshToken = localStorage.getItem('refresh_token');
-    if (token) {
-        config.headers.Authorization = token;
-    }
-    if (refreshToken) {
-        config.headers['refresh-token'] = refreshToken;
-    }
-
-    return config;
-});
-
 export const axiosAPIFunciones = axios.create({
     baseURL: config.APIFuncionesUrls.baseUrl,
     headers: {
@@ -28,37 +15,11 @@ export const axiosAPIFunciones = axios.create({
     },
 });
 
-axiosAPIFunciones.interceptors.request.use((config) => {
-    const token = localStorage.getItem('access_token');
-    const refreshToken = localStorage.getItem('refresh_token');
-    if (token) {
-        config.headers.Authorization = token;
-    }
-    if (refreshToken) {
-        config.headers['refresh-token'] = refreshToken;
-    }
-
-    return config;
-});
-
 export const axiosAPIIntegracionMP = axios.create({
     baseURL: config.APIIntegracionMPUrls.baseUrl,
     headers: {
         'Content-Type': 'application/json',
     },
-});
-
-axiosAPIIntegracionMP.interceptors.request.use((config) => {
-    const token = localStorage.getItem('access_token');
-    const refreshToken = localStorage.getItem('refresh_token');
-    if (token) {
-        config.headers.Authorization = token;
-    }
-    if (refreshToken) {
-        config.headers['refresh-token'] = refreshToken;
-    }
-
-    return config;
 });
 
 export const axiosAPIEnviarMails = axios.create({

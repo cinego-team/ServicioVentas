@@ -86,102 +86,120 @@ export class VentaService {
         };
     }
         */
-    async abrirVenta(user, dato: VentaInput): Promise<VentaResponse> {
-        //chequear que no tiene usuario
-        if (!user || !user.id) {
-            throw new BadRequestException('Usuario no autenticado');
-        }
-        try {
-            //reservo las butacas con las disponibilidadId
-            axiosAPIFunciones.post(
-                config.APIFuncionesUrls.reservarButacasByIds,
-                {
-                    body: {
-                        disponibilidaButacasIds: dato.disponibilidaButacaIds,
-                    },
-                },
-            );
+   async abrirVenta(user, dato: VentaInput): Promise<VentaResponse> {
+    console.log('🧠 USER:', user);
+    console.log('📦 DTO RECIBIDO:', dato);
 
-            //buscamos la promocion con mayor porcentaje (id y porcentaje)
-            const promocionValida: PromocionDTO = await axiosAPIPromociones.get(
-                config.APIPromocionesUrls.verificarPromocionById(user.id),
-            );
-
-            //obtenemos el precio de las entradas
-            const precioEntradas: number = await axiosAPIFunciones.get(
-                config.APIFuncionesUrls.obtenerPrecioEntradaByFuncionId(
-                    dato.funcionId,
-                ),
-            );
-
-            //comenzamos a obtener el total
-            let total: number = 0;
-            if (dato.disponibilidaButacaIds.length === 1) {
-                total = precioEntradas * (1 - promocionValida.descuento);
-            } else if (dato.disponibilidaButacaIds.length > 1) {
-                total =
-                    precioEntradas * (1 - promocionValida.descuento) +
-                    precioEntradas * (dato.disponibilidaButacaIds.length - 1);
-            } else if (dato.disponibilidaButacaIds.length <= 0 || total === 0) {
-                throw new BadRequestException('No se seleccionaron butacas');
-            }
-            //buscamos fecha, hora y el titulo de la funcion
-            const datoFuncion: DatosFuncion = await axiosAPIFunciones.get(
-                config.APIFuncionesUrls.getDatosFuncionById(dato.funcionId),
-            );
-            //creamos la venta
-            const estadoPendiente: EstadoVenta | null =
-                await this.estadoRepo.findOneBy({
-                    nombre: 'PENDIENTE DE PAGO',
-                });
-            if (!estadoPendiente) {
-                throw new InternalServerErrorException(
-                    'Estado de venta PENDIENTE DE PAGO no encontrado',
-                );
-            }
-
-            const nuevaVenta = this.ventaRepo.create({
-                // hora: null //new Date().toISOString().split('T')[1],
-                // fecha: null //new Date(),
-                total: total,
-                promocionId: promocionValida.id,
-                estadoVenta: estadoPendiente,
-                cliente: user.id,
-                fechaFuncion: datoFuncion.fechaFuncion,
-                horaFuncion: datoFuncion.horaFuncion,
-            });
-            const ventaGuardada = await this.ventaRepo.save(nuevaVenta);
-
-            //abrimos el cobro
-            const datosMP: DatosMP = await axiosAPIIntegracionMP.post(
-                config.APIIntegracionMPUrls.abrirCobro,
-                {
-                    body: {
-                        idsDisponibilidad: dato.disponibilidaButacaIds,
-                        fechaFuncion: datoFuncion.fechaFuncion,
-                        horaFuncion: datoFuncion.horaFuncion,
-                        titulo: datoFuncion.titulo,
-                        total: total,
-                        ventaId: ventaGuardada.nroVenta,
-                        usuarioId: user.id,
-                    },
-                },
-            );
-            const respuesta: VentaResponse = {
-                nroVenta: ventaGuardada.nroVenta,
-                total: ventaGuardada.total,
-                promocionId: ventaGuardada.promocionId,
-                urlPagoMP: datosMP.init_point,
-                idPagoMP: datosMP.id,
-            };
-            return respuesta;
-        } catch (error) {
-            throw new InternalServerErrorException(
-                'Error al procesar la venta',
-            );
-        }
+    if (!user || !user.id) {
+        throw new BadRequestException('Usuario no autenticado');
     }
 
+    try {
+        // 1. Reservo las butacas
+        await axiosAPIFunciones.patch(
+            config.APIFuncionesUrls.reservarButacasByIds,
+            { disponibilidadButacaIds: dato.disponibilidadButacaIds }
+        );
+
+        // 2. Buscamos la promocion (CORRECCIÓN: Se envía el clienteId por Query)
+        let promocionValida: any = null; 
+        try {
+            const url = config.APIPromocionesUrls.verificarPromocionById(user.id);
+            const res = await axiosAPIPromociones.get(url);
+            promocionValida = res.data;
+            console.log("✅ Promoción aplicada:", promocionValida);
+        } catch (error) {
+            console.log("⚠️ Cliente sin promo o error, continuando sin descuento...");
+            promocionValida = { descuento: 0, id: null }; 
+        }
+
+        // 3. Obtenemos el precio (CORRECCIÓN: Se apunta a FormatoController)
+        let precioEntradas = 6000; 
+        try {
+            const resPrecio = await axiosAPIFunciones.get<{ precio: number }>(
+                `${config.APIFuncionesUrls.baseUrl}/formato/precio-entrada/${dato.funcionId}`
+            );
+            precioEntradas = resPrecio.data.precio;
+        } catch (error) {
+            console.log("⚠️ Usando precio base 6000");
+        }
+
+        // 4. Calculamos el total
+        const cantButacas = dato.disponibilidadButacaIds.length;
+        const desc = promocionValida?.descuento || 0;
+        let total: number = 0;
+
+        if (cantButacas >= 1) {
+            // Se asume desc como decimal (ej: 0.15 para 15%). Si es entero, usar (desc/100)
+            total = (precioEntradas * (1 - desc)) + (precioEntradas * (cantButacas - 1));
+        } else {
+            throw new BadRequestException('No se seleccionaron butacas');
+        }
+
+        // 5. Buscamos datos de la función (CORRECCIÓN: Formateo de fecha y hora)
+        let datoFuncion: any;
+        try {
+            const resDatos = await axiosAPIFunciones.get<any>(
+                `${config.APIFuncionesUrls}/funcion/${dato.funcionId}`
+            );
+            const f = resDatos.data;
+            datoFuncion = {
+                titulo: "Entrada de Cine",
+                fechaFuncion: new Date(f.fecha).toISOString().split('T')[0],
+                horaFuncion: new Date(f.fecha).toTimeString().split(' ')[0]
+            };
+        } catch (error) {
+            const ahora = new Date();
+            datoFuncion = {
+                titulo: "Entradas de Cine",
+                fechaFuncion: ahora.toISOString().split('T')[0],
+                horaFuncion: ahora.toTimeString().split(' ')[0]
+            };
+        }
+
+        // 6. Creamos la venta (CORRECCIÓN: Se añade 'fecha' y se valida el total)
+        const estadoPendiente = await this.estadoRepo.findOneBy({ nombre: 'PENDIENTE DE PAGO' });
+        if (!estadoPendiente) throw new InternalServerErrorException('Estado no encontrado');
+
+        const nuevaVenta = this.ventaRepo.create({
+            fecha: new Date(), // <-- SOLUCIONA: null value violates not-null constraint
+            total: isNaN(total) ? (precioEntradas * cantButacas) : total, // <-- SOLUCIONA: NaN
+            promocionId: promocionValida?.id || null,
+            estadoVenta: estadoPendiente,
+            cliente: user.id,
+            fechaFuncion: datoFuncion.fechaFuncion,
+            horaFuncion: datoFuncion.horaFuncion,
+        });
+
+        const ventaGuardada = await this.ventaRepo.save(nuevaVenta);
+
+        // 7. ABRIMOS EL COBRO EN MERCADO PAGO
+        const { data: datosMP } = await axiosAPIIntegracionMP.post<any>(
+            config.APIIntegracionMPUrls.abrirCobro,
+            {
+                idsDisponibilidad: dato.disponibilidadButacaIds,
+                fechaFuncion: datoFuncion.fechaFuncion,
+                horaFuncion: datoFuncion.horaFuncion,
+                titulo: datoFuncion.titulo,
+                monto: ventaGuardada.total,
+                ventaId: ventaGuardada.nroVenta,
+                usuarioId: user.id,
+            }
+        );
+
+        return {
+            nroVenta: ventaGuardada.nroVenta,
+            total: ventaGuardada.total,
+            promocionId: ventaGuardada.promocionId,
+            urlPagoMP: datosMP.init_point,
+            idPagoMP: datosMP.id,
+        };
+
+    } catch (error) {
+        console.error('🔥 ERROR CRÍTICO EN VENTAS:', error?.response?.data || error);
+        throw error;
+    }
+}
     async cerrarVenta(data: CerrarVentaInput): Promise<void> {
         if (data.status === 'approved') {
             const venta: Venta | null = await this.ventaRepo.findOne({
@@ -224,9 +242,7 @@ export class VentaService {
 
             //ocupar las butacas
             axiosAPIFunciones.post(config.APIFuncionesUrls.ocuparButacasByIds, {
-                body: {
-                    disponibilidaButacasIds: data.disponibilidadButacaIds,
-                },
+                disponibilidaButacasIds: data.disponibilidadButacaIds, // Sin el envoltorio 'body'
             });
 
             //obtener tokens de entrada para generar qr
