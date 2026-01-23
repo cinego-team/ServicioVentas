@@ -86,120 +86,133 @@ export class VentaService {
         };
     }
         */
-   async abrirVenta(user, dato: VentaInput): Promise<VentaResponse> {
-    console.log('🧠 USER:', user);
-    console.log('📦 DTO RECIBIDO:', dato);
+    async abrirVenta(user, dato: VentaInput): Promise<VentaResponse> {
+        console.log('🧠 USER:', user);
+        console.log('📦 DTO RECIBIDO:', dato);
 
-    if (!user || !user.id) {
-        throw new BadRequestException('Usuario no autenticado');
-    }
-
-    try {
-        // 1. Reservo las butacas
-        await axiosAPIFunciones.patch(
-            config.APIFuncionesUrls.reservarButacasByIds,
-            { disponibilidadButacaIds: dato.disponibilidadButacaIds }
-        );
-
-        // 2. Buscamos la promocion (CORRECCIÓN: Se envía el clienteId por Query)
-        let promocionValida: any = null; 
-        try {
-            const url = config.APIPromocionesUrls.verificarPromocionById(user.id);
-            const res = await axiosAPIPromociones.get(url);
-            promocionValida = res.data;
-            console.log("✅ Promoción aplicada:", promocionValida);
-        } catch (error) {
-            console.log("⚠️ Cliente sin promo o error, continuando sin descuento...");
-            promocionValida = { descuento: 0, id: null }; 
+        if (!user || !user.id) {
+            throw new BadRequestException('Usuario no autenticado');
         }
 
-        // 3. Obtenemos el precio (CORRECCIÓN: Se apunta a FormatoController)
-        let precioEntradas = 6000; 
         try {
-            const resPrecio = await axiosAPIFunciones.get<{ precio: number }>(
-                `${config.APIFuncionesUrls.baseUrl}/formato/precio-entrada/${dato.funcionId}`
+            // 1. Reservo las butacas
+            await axiosAPIFunciones.patch(
+                config.APIFuncionesUrls.reservarButacasByIds,
+                { disponibilidadButacaIds: dato.disponibilidadButacaIds },
             );
-            precioEntradas = resPrecio.data.precio;
-        } catch (error) {
-            console.log("⚠️ Usando precio base 6000");
-        }
 
-        // 4. Calculamos el total
-        const cantButacas = dato.disponibilidadButacaIds.length;
-        const desc = promocionValida?.descuento || 0;
-        let total: number = 0;
+            // 2. Buscamos la promocion (CORRECCIÓN: Se envía el clienteId por Query)
+            let promocionValida: any = null;
+            try {
+                const url = config.APIPromocionesUrls.verificarPromocionById(
+                    user.id,
+                );
+                const res = await axiosAPIPromociones.get(url);
+                promocionValida = res.data;
+                console.log('✅ Promoción aplicada:', promocionValida);
+            } catch (error) {
+                console.log(
+                    '⚠️ Cliente sin promo o error, continuando sin descuento...',
+                );
+                promocionValida = { descuento: 0, id: null };
+            }
 
-        if (cantButacas >= 1) {
-            // Se asume desc como decimal (ej: 0.15 para 15%). Si es entero, usar (desc/100)
-            total = (precioEntradas * (1 - desc)) + (precioEntradas * (cantButacas - 1));
-        } else {
-            throw new BadRequestException('No se seleccionaron butacas');
-        }
+            // 3. Obtenemos el precio (CORRECCIÓN: Se apunta a FormatoController)
+            let precioEntradas = 6000;
+            try {
+                const resPrecio = await axiosAPIFunciones.get<{
+                    precio: number;
+                }>(
+                    `${config.APIFuncionesUrls.baseUrl}/formato/precio-entrada/${dato.funcionId}`,
+                );
+                precioEntradas = resPrecio.data.precio;
+            } catch (error) {
+                console.log('⚠️ Usando precio base 6000');
+            }
 
-        // 5. Buscamos datos de la función (CORRECCIÓN: Formateo de fecha y hora)
-        let datoFuncion: any;
-        try {
-            const resDatos = await axiosAPIFunciones.get<any>(
-                `${config.APIFuncionesUrls}/funcion/${dato.funcionId}`
-            );
-            const f = resDatos.data;
-            datoFuncion = {
-                titulo: "Entrada de Cine",
-                fechaFuncion: new Date(f.fecha).toISOString().split('T')[0],
-                horaFuncion: new Date(f.fecha).toTimeString().split(' ')[0]
-            };
-        } catch (error) {
-            const ahora = new Date();
-            datoFuncion = {
-                titulo: "Entradas de Cine",
-                fechaFuncion: ahora.toISOString().split('T')[0],
-                horaFuncion: ahora.toTimeString().split(' ')[0]
-            };
-        }
+            // 4. Calculamos el total
+            const cantButacas = dato.disponibilidadButacaIds.length;
+            const desc = promocionValida?.descuento || 0;
+            let total: number = 0;
 
-        // 6. Creamos la venta (CORRECCIÓN: Se añade 'fecha' y se valida el total)
-        const estadoPendiente = await this.estadoRepo.findOneBy({ nombre: 'PENDIENTE DE PAGO' });
-        if (!estadoPendiente) throw new InternalServerErrorException('Estado no encontrado');
+            if (cantButacas >= 1) {
+                // Se asume desc como decimal (ej: 0.15 para 15%). Si es entero, usar (desc/100)
+                total =
+                    precioEntradas * (1 - desc) +
+                    precioEntradas * (cantButacas - 1);
+            } else {
+                throw new BadRequestException('No se seleccionaron butacas');
+            }
 
-        const nuevaVenta = this.ventaRepo.create({
-            fecha: new Date(), // <-- SOLUCIONA: null value violates not-null constraint
-            total: isNaN(total) ? (precioEntradas * cantButacas) : total, // <-- SOLUCIONA: NaN
-            promocionId: promocionValida?.id || null,
-            estadoVenta: estadoPendiente,
-            cliente: user.id,
-            fechaFuncion: datoFuncion.fechaFuncion,
-            horaFuncion: datoFuncion.horaFuncion,
-        });
+            // 5. Buscamos datos de la función (CORRECCIÓN: Formateo de fecha y hora)
+            let datoFuncion: any;
+            try {
+                const resDatos = await axiosAPIFunciones.get<any>(
+                    `${config.APIFuncionesUrls}/funcion/${dato.funcionId}`,
+                );
+                const f = resDatos.data;
+                datoFuncion = {
+                    titulo: 'Entrada de Cine',
+                    fechaFuncion: new Date(f.fecha).toISOString().split('T')[0],
+                    horaFuncion: new Date(f.fecha).toTimeString().split(' ')[0],
+                };
+            } catch (error) {
+                const ahora = new Date();
+                datoFuncion = {
+                    titulo: 'Entradas de Cine',
+                    fechaFuncion: ahora.toISOString().split('T')[0],
+                    horaFuncion: ahora.toTimeString().split(' ')[0],
+                };
+            }
 
-        const ventaGuardada = await this.ventaRepo.save(nuevaVenta);
+            // 6. Creamos la venta (CORRECCIÓN: Se añade 'fecha' y se valida el total)
+            const estadoPendiente = await this.estadoRepo.findOneBy({
+                nombre: 'PENDIENTE DE PAGO',
+            });
+            if (!estadoPendiente)
+                throw new InternalServerErrorException('Estado no encontrado');
 
-        // 7. ABRIMOS EL COBRO EN MERCADO PAGO
-        const { data: datosMP } = await axiosAPIIntegracionMP.post<any>(
-            config.APIIntegracionMPUrls.abrirCobro,
-            {
-                idsDisponibilidad: dato.disponibilidadButacaIds,
+            const nuevaVenta = this.ventaRepo.create({
+                fecha: new Date(), // <-- SOLUCIONA: null value violates not-null constraint
+                total: isNaN(total) ? precioEntradas * cantButacas : total, // <-- SOLUCIONA: NaN
+                promocionId: promocionValida?.id || null,
+                estadoVenta: estadoPendiente,
+                cliente: user.id,
                 fechaFuncion: datoFuncion.fechaFuncion,
                 horaFuncion: datoFuncion.horaFuncion,
-                titulo: datoFuncion.titulo,
-                monto: ventaGuardada.total,
-                ventaId: ventaGuardada.nroVenta,
-                usuarioId: user.id,
-            }
-        );
+            });
 
-        return {
-            nroVenta: ventaGuardada.nroVenta,
-            total: ventaGuardada.total,
-            promocionId: ventaGuardada.promocionId,
-            urlPagoMP: datosMP.init_point,
-            idPagoMP: datosMP.id,
-        };
+            const ventaGuardada = await this.ventaRepo.save(nuevaVenta);
 
-    } catch (error) {
-        console.error('🔥 ERROR CRÍTICO EN VENTAS:', error?.response?.data || error);
-        throw error;
+            // 7. ABRIMOS EL COBRO EN MERCADO PAGO
+            const { data: datosMP } = await axiosAPIIntegracionMP.post<any>(
+                config.APIIntegracionMPUrls.abrirCobro,
+                {
+                    idsDisponibilidad: dato.disponibilidadButacaIds,
+                    fechaFuncion: datoFuncion.fechaFuncion,
+                    horaFuncion: datoFuncion.horaFuncion,
+                    titulo: datoFuncion.titulo,
+                    monto: ventaGuardada.total,
+                    ventaId: ventaGuardada.nroVenta,
+                    usuarioId: user.id,
+                },
+            );
+
+            return {
+                nroVenta: ventaGuardada.nroVenta,
+                total: ventaGuardada.total,
+                promocionId: ventaGuardada.promocionId,
+                urlPagoMP: datosMP.init_point,
+                idPagoMP: datosMP.id,
+            };
+        } catch (error) {
+            console.error(
+                '🔥 ERROR CRÍTICO EN VENTAS:',
+                error?.response?.data || error,
+            );
+            throw error;
+        }
     }
-}
     async cerrarVenta(data: CerrarVentaInput): Promise<void> {
         if (data.status === 'approved') {
             const venta: Venta | null = await this.ventaRepo.findOne({
@@ -369,9 +382,6 @@ export class VentaService {
         return Promise.all(
             ventas.map(async (venta): Promise<VentaResponseAdmin> => {
                 try {
-                    /* =========================
-         DATOS CLIENTE
-      ========================== */
                     let cliente;
 
                     try {
@@ -402,9 +412,6 @@ export class VentaService {
                         };
                     }
 
-                    /* =========================
-         PROMOCIÓN
-      ========================== */
                     let promocion: VentaResponseAdmin['promocion'] = undefined;
 
                     if (venta.promocionId) {
@@ -428,10 +435,6 @@ export class VentaService {
                             );
                         }
                     }
-
-                    /* =========================
-         RESPUESTA
-      ========================== */
                     return {
                         nroVenta: venta.nroVenta,
                         fecha: venta.fecha,
@@ -452,7 +455,6 @@ export class VentaService {
                         error,
                     );
 
-                    // 👇 MUY IMPORTANTE: nunca lanzar error
                     return {
                         nroVenta: venta.nroVenta,
                         fecha: venta.fecha,
