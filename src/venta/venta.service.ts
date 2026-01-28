@@ -154,7 +154,7 @@ export class VentaService {
                 datoFuncion = {
                     titulo: 'Entrada de Cine',
                     fechaFuncion: new Date(f.fecha).toISOString().split('T')[0],
-                    horaFuncion: new Date(f.fecha).toTimeString().split(' ')[0],
+                    horaFuncion: f.hora,
                 };
             } catch (error) {
                 const ahora = new Date();
