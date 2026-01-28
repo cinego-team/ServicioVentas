@@ -283,24 +283,23 @@ export class VentaService {
 
     // Reporte: top 5 horarios más elegidos del mes
     async getHorariosMasElegidos() {
-    const hoy = new Date();
-    const mes = hoy.getMonth() + 1;
-    const anio = hoy.getFullYear();
+        const hoy = new Date();
+        const mes = hoy.getMonth() + 1;
+        const anio = hoy.getFullYear();
 
-    return await this.ventaRepo
-        .createQueryBuilder('v')
-        .innerJoin('v.estadoVenta', 'estado')
-        .innerJoin('v.entradas', 'e')
-        .select('EXTRACT(HOUR FROM v.hora_funcion)', 'hora')  // ← Cambio aquí
-        .addSelect('COUNT(e.id)', 'cantidad')
-        .where('estado.nombre = :estado', { estado: 'APROBADA' })
-        .andWhere('EXTRACT(MONTH FROM v.fecha_funcion::date) = :mes', { mes })
-        .andWhere('EXTRACT(YEAR FROM v.fecha_funcion::date) = :anio', { anio })
-        .groupBy('hora')
-        .orderBy('cantidad', 'DESC')
-        .limit(5)
-        .getRawMany();
-}
+        return await this.ventaRepo
+            .createQueryBuilder('v')
+            .innerJoin('v.estadoVenta', 'ev')
+            .innerJoin('v.entradas', 'e')
+            .select(`TO_CHAR(v.hora_funcion, 'HH24:MI')`, 'hora')
+            .addSelect('COUNT(e.id)', 'cantidad')
+            .where('ev.nombre = :estado', { estado: 'APROBADA' })
+            .andWhere('EXTRACT(MONTH FROM v.fecha_funcion) = :mes', { mes })
+            .andWhere('EXTRACT(YEAR FROM v.fecha_funcion) = :anio', { anio })
+            .groupBy('hora')
+            .orderBy('hora')
+            .getRawMany();
+        }
 
     // Reporte: cantidad de entradas vendidas por día de la semana en el mes actual
     async getEntradasPorDiaSemanaMesActual(): Promise<any[]> {
@@ -308,30 +307,28 @@ export class VentaService {
         const mesActual = ahora.getMonth() + 1;
         const anioActual = ahora.getFullYear();
 
-        return await this.ventaRepo
-            .createQueryBuilder('v')
-            .innerJoin('v.estadoVenta', 'estado')
-            .innerJoin('v.entradas', 'e')
-            .select("TRIM(TO_CHAR(v.fecha_funcion::date, 'TMDay'))", 'dia_semana')
-            .addSelect('COUNT(e.id)', 'cantidad_entradas')
-            .where('estado.nombre = :estado', { estado: 'APROBADA' })
-            .andWhere('EXTRACT(MONTH FROM v.fecha_funcion::date) = :mes', { mes: mesActual })
-            .andWhere('EXTRACT(YEAR FROM v.fecha_funcion::date) = :anio', { anio: anioActual })
-            .groupBy('dia_semana')
-            .orderBy(
-                `
-                CASE 
-                    WHEN TRIM(TO_CHAR(v.fecha_funcion::date, 'TMDay')) = 'Lunes' THEN 1
-                    WHEN TRIM(TO_CHAR(v.fecha_funcion::date, 'TMDay')) = 'Martes' THEN 2
-                    WHEN TRIM(TO_CHAR(v.fecha_funcion::date, 'TMDay')) = 'Miércoles' THEN 3
-                    WHEN TRIM(TO_CHAR(v.fecha_funcion::date, 'TMDay')) = 'Jueves' THEN 4
-                    WHEN TRIM(TO_CHAR(v.fecha_funcion::date, 'TMDay')) = 'Viernes' THEN 5
-                    WHEN TRIM(TO_CHAR(v.fecha_funcion::date, 'TMDay')) = 'Sábado' THEN 6
-                    WHEN TRIM(TO_CHAR(v.fecha_funcion::date, 'TMDay')) = 'Domingo' THEN 7
+        return await this.ventaRepo.query(`
+            SELECT 
+                TRIM(TO_CHAR(v.fecha_funcion::date, 'Day')) AS dia_semana,
+                COUNT(e.id) AS cantidad_entradas
+            FROM venta v
+            INNER JOIN estado_venta estado ON estado.id = v.estado_venta_id
+            INNER JOIN entrada e ON e.venta_id = v.id
+            WHERE estado.nombre = $1
+            AND EXTRACT(MONTH FROM v.fecha_funcion::date) = $2
+            AND EXTRACT(YEAR FROM v.fecha_funcion::date) = $3
+            GROUP BY TRIM(TO_CHAR(v.fecha_funcion::date, 'Day'))
+            ORDER BY 
+                CASE TRIM(TO_CHAR(v.fecha_funcion::date, 'Day'))
+                    WHEN 'Monday' THEN 1
+                    WHEN 'Tuesday' THEN 2
+                    WHEN 'Wednesday' THEN 3
+                    WHEN 'Thursday' THEN 4
+                    WHEN 'Friday' THEN 5
+                    WHEN 'Saturday' THEN 6
+                    WHEN 'Sunday' THEN 7
                 END
-                `,
-            )
-            .getRawMany();
+        `, ['APROBADA', mesActual, anioActual]);
     }
 
     //reporte trimestral de peliculas por rango de ventas
@@ -339,27 +336,19 @@ export class VentaService {
         trimestre: number,
         anio: number,
     ): Promise<any[]> {
+        // Devuelve los 4 trimestres del año con sus cantidades
         const result = await this.ventaRepo.query(`
             SELECT 
-                CASE
-                    WHEN total_entradas <= 100 THEN 'Bajas ventas'
-                    WHEN total_entradas <= 500 THEN 'Ventas medias'
-                    ELSE 'Altas ventas'
-                END AS rango,
-                COUNT(*) AS cantidad_ventas
-            FROM (
-                SELECT v.id, COUNT(e.id) AS total_entradas
-                FROM venta v
-                INNER JOIN estado_venta estado ON estado.id = v.estado_venta_id
-                INNER JOIN entrada e ON e.venta_id = v.id
-                WHERE estado.nombre = $1
-                AND EXTRACT(QUARTER FROM v.fecha_funcion::date) = $2
-                AND EXTRACT(YEAR FROM v.fecha_funcion::date) = $3
-                GROUP BY v.id
-            ) AS ventas_con_entradas
-            GROUP BY rango
-            ORDER BY cantidad_ventas DESC
-        `, ['APROBADA', trimestre, anio]);
+                EXTRACT(QUARTER FROM v.fecha_funcion::date)::text AS trimestre,
+                COUNT(e.id) AS cantidad_ventas
+            FROM venta v
+            INNER JOIN estado_venta estado ON estado.id = v.estado_venta_id
+            INNER JOIN entrada e ON e.venta_id = v.id
+            WHERE estado.nombre = $1
+            AND EXTRACT(YEAR FROM v.fecha_funcion::date) = $2
+            GROUP BY EXTRACT(QUARTER FROM v.fecha_funcion::date)
+            ORDER BY trimestre
+        `, ['APROBADA', anio]);
         
         return result;
     }
