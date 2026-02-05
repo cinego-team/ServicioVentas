@@ -13,12 +13,10 @@ import { EstadoVentaModule } from './estado-venta/estado-venta.module';
     imports: [
         TypeOrmModule.forRoot({
             type: "postgres",
-            host: "localhost",
-            port: 5432,
-            database: "msventas",
-            username: "postgres",
-            password: "grupou",
-            synchronize: true,
+            url: process.env.PG_MSVENTAS,
+            ssl: { rejectUnauthorized: false },
+            autoLoadEntities: true,
+            synchronize: false,
             entities: [Venta, Entrada, EstadoVenta],
         }),
         VentaModule, EntradaModule, EstadoVentaModule],
