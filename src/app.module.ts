@@ -16,7 +16,7 @@ import { EstadoVentaModule } from './estado-venta/estado-venta.module';
             url: process.env.PG_MSVENTAS,
             ssl: { rejectUnauthorized: false },
             autoLoadEntities: true,
-            synchronize: false,
+            synchronize: true,
             entities: [Venta, Entrada, EstadoVenta],
         }),
         VentaModule, EntradaModule, EstadoVentaModule],
