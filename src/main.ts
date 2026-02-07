@@ -6,13 +6,13 @@ async function bootstrap() {
     const app = await NestFactory.create(AppModule);
     await app.enableCors({
         origin: [
-            'https://api-gateway-one-rose.vercel.app',
-            'https://servicio-integracion-mercado-pago.vercel.app',
-            'https://microservicio-de-peliculas.vercel.app',
-            'https://servicio-promociones.vercel.app',
-            'https://servicio-usuarios.vercel.app',
-            'https://servicio-funciones-y-salas.vercel.app',
-            'https://servicioenvioemails.vercel.app'
+            'https://apigateway-v5pv.onrender.com',
+            'https://servicio-integracion-mercadopago.onrender.com',
+            'https://microservicio-de-peliculas.onrender.com',
+            'https://serviciopromociones-wftn.onrender.com',
+            'https://servicio-usuarios-ejqg.onrender.com',
+            'https://servicio-funciones-y-salas.onrender.com',
+            'https://servicio-envio-emails.onrender.com'
         ],
         methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
         credentials: true
