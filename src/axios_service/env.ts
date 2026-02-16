@@ -1,13 +1,13 @@
 export const config = {
     APIPromocionesUrls: {
-        baseUrl: process.env.URL_MS_PROMOCIONES || 'http://localhost:3005',
+        baseUrl: `http://localhost:${process.env.PUERTO_MS_PROMOCIONES}`,
         // En tu archivo de configuración de URLs
         verificarPromocionById: (clienteId: number) =>
             `/promocion/verificar-promocion?clienteId=${clienteId}`,
         getPromocionById: (id: number) => `/promocion/admin/${id}`,
     },
     APIFuncionesUrls: {
-        baseUrl: process.env.URL_MS_FUNCIONES || 'http://localhost:3003',
+        baseUrl: `http://localhost:${process.env.PUERTO_MS_FUNCIONES_Y_SALAS}`,
         obtenerPrecioEntradaByFuncionId: (id: number) =>
             `/formato/precio-entrada/${id}`,
         reservarButacasByIds: '/disponibilidad-butaca/reservar',
@@ -15,15 +15,15 @@ export const config = {
         ocuparButacasByIds: '/formato/ocupar-butacas',
     },
     APIIntegracionMPUrls: {
-        baseUrl: process.env.URL_MS_MERCADOPAGO || 'http://localhost:3007',
+        baseUrl: `http://localhost:${process.env.PUERTO_MS_MERCADOPAGO}`,
         abrirCobro: '/cobros/abrir-cobro',
     },
     APIEnviarMailsUrls: {
-        baseUrl: process.env.URL_MS_ENVIO_EMAILS || 'http://localhost:3008',
+        baseUrl: `http://localhost:${process.env.PUERTO_MS_ENVIO_EMAILS}`,
         sendMail: '/mails/send',
     },
     APIUsuariosUrls: {
-        baseUrl: process.env.URL_MS_USUARIOS || 'http://localhost:3004',
+        baseUrl: `http://localhost:${process.env.PUERTO_MS_USUARIOS}`,
         getDatosClienteById: (id: number) =>
             `/usuario/admin/datos-cliente/${id}`,
     },
