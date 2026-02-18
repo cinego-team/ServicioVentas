@@ -1,13 +1,13 @@
 export const config = {
     APIPromocionesUrls: {
-        baseUrl: `http://localhost:${process.env.PUERTO_MS_PROMOCIONES}`,
+        baseUrl: 'http://localhost:3005',
         // En tu archivo de configuración de URLs
         verificarPromocionById: (clienteId: number) =>
             `/promocion/verificar-promocion?clienteId=${clienteId}`,
         getPromocionById: (id: number) => `/promocion/admin/${id}`,
     },
     APIFuncionesUrls: {
-        baseUrl: `http://localhost:${process.env.PUERTO_MS_FUNCIONES_Y_SALAS}`,
+        baseUrl: 'http://localhost:3002',
         obtenerPrecioEntradaByFuncionId: (id: number) =>
             `/formato/precio-entrada/${id}`,
         reservarButacasByIds: '/disponibilidad-butaca/reservar',
@@ -15,15 +15,15 @@ export const config = {
         ocuparButacasByIds: '/formato/ocupar-butacas',
     },
     APIIntegracionMPUrls: {
-        baseUrl: `http://localhost:${process.env.PUERTO_MS_MERCADOPAGO}`,
+        baseUrl: 'http://localhost:3007',
         abrirCobro: '/cobros/abrir-cobro',
     },
     APIEnviarMailsUrls: {
-        baseUrl: `http://localhost:${process.env.PUERTO_MS_ENVIO_EMAILS}`,
+        baseUrl: 'http://localhost:3006',
         sendMail: '/mails/send',
     },
     APIUsuariosUrls: {
-        baseUrl: `http://localhost:${process.env.PUERTO_MS_USUARIOS}`,
+        baseUrl: 'http://localhost:3004',
         getDatosClienteById: (id: number) =>
             `/usuario/admin/datos-cliente/${id}`,
     },
