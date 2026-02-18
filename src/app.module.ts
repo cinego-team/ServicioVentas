@@ -19,7 +19,7 @@ import { ConfigModule } from '@nestjs/config';
             type: 'postgres',
             host: 'localhost',
             port: Number(process.env.PUERTO_BD),
-            database: process.env.PG_DATABASE_MS_USUARIOS,
+            database: process.env.PG_DATABASE_MS_VENTAS,
             username: process.env.PG_USERNAME,
             password: process.env.PG_PASSWORD,
             synchronize: true,
