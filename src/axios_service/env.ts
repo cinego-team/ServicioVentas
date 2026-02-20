@@ -15,7 +15,7 @@ export const config = {
         ocuparButacasByIds: '/formato/ocupar-butacas',
     },
     APIIntegracionMPUrls: {
-        baseUrl: 'http://localhost:3007',
+        baseUrl: 'https://susanne-tressured-fidel.ngrok-free.dev', //link solo valido para pc rama
         abrirCobro: '/cobros/abrir-cobro',
     },
     APIEnviarMailsUrls: {
