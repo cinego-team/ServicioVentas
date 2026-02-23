@@ -37,7 +37,7 @@ export class VentaService {
         private readonly ventaRepo: Repository<Venta>,
         @InjectRepository(EstadoVenta)
         private readonly estadoRepo: Repository<EstadoVenta>,
-    ) {}
+    ) { }
 
     // Listar todas las ventas
     /*
@@ -87,12 +87,11 @@ export class VentaService {
     }
         */
     async abrirVenta(user, dato: VentaInput): Promise<VentaResponse> {
-        console.log('🧠 USER:', user);
-        console.log('📦 DTO RECIBIDO:', dato);
-
         if (!user || !user.id) {
             throw new BadRequestException('Usuario no autenticado');
         }
+
+        console.log("ABRIENDO VENTA")
 
         try {
             // 1. Reservo las butacas
@@ -109,10 +108,10 @@ export class VentaService {
                 );
                 const res = await axiosAPIPromociones.get(url);
                 promocionValida = res.data;
-                console.log('✅ Promoción aplicada:', promocionValida);
+                console.log('Promoción aplicada:', promocionValida);
             } catch (error) {
                 console.log(
-                    '⚠️ Cliente sin promo o error, continuando sin descuento...',
+                    'Cliente sin promo o error, continuando sin descuento...',
                 );
                 promocionValida = { descuento: 0, id: null };
             }
@@ -127,7 +126,7 @@ export class VentaService {
                 );
                 precioEntradas = resPrecio.data.precio;
             } catch (error) {
-                console.log('⚠️ Usando precio base 6000');
+                console.log('Usando precio base 6000');
             }
 
             // 4. Calculamos el total
@@ -147,16 +146,25 @@ export class VentaService {
             // 5. Buscamos datos de la función (CORRECCIÓN: Formateo de fecha y hora)
             let datoFuncion: any;
             try {
-                const resDatos = await axiosAPIFunciones.get<any>(
-                    `${config.APIFuncionesUrls}/funcion/${dato.funcionId}`,
+                console.log("funcion id", dato.funcionId)
+                console.log("5.1")
+                const responseFuncion = await axiosAPIFunciones.get(
+                    config.APIFuncionesUrls.getDatosFuncionById(dato.funcionId),
                 );
-                const f = resDatos.data;
+                console.log("5.2")
+                const dataFuncion = responseFuncion.data;
                 datoFuncion = {
                     titulo: 'Entrada de Cine',
-                    fechaFuncion: new Date(f.fecha).toISOString().split('T')[0],
-                    horaFuncion: f.hora,
+                    fechaFuncion: new Date(dataFuncion.fecha).toISOString().split('T')[0],
+                    horaFuncion: dataFuncion.hora,
                 };
+                console.log("pase aca")
+                console.log(datoFuncion.fechaFuncion)
+                console.log(typeof datoFuncion.fechaFuncion)
+                console.log(datoFuncion.horaFuncion)
+                console.log(typeof datoFuncion.horaFuncion)
             } catch (error) {
+                console.log(error)
                 const ahora = new Date();
                 datoFuncion = {
                     titulo: 'Entradas de Cine',
@@ -207,7 +215,7 @@ export class VentaService {
             };
         } catch (error) {
             console.error(
-                '🔥 ERROR CRÍTICO EN VENTAS:',
+                'ERROR CRÍTICO EN VENTAS:',
                 error?.response?.data || error,
             );
             throw error;
@@ -299,7 +307,7 @@ export class VentaService {
             .groupBy('hora')
             .orderBy('hora')
             .getRawMany();
-        }
+    }
 
     // Reporte: cantidad de entradas vendidas por día de la semana en el mes actual
     async getEntradasPorDiaSemanaMesActual(): Promise<any[]> {
@@ -349,7 +357,7 @@ export class VentaService {
             GROUP BY EXTRACT(QUARTER FROM v.fecha_funcion::date)
             ORDER BY trimestre
         `, ['APROBADA', anio]);
-        
+
         return result;
     }
     //GET VENTAS

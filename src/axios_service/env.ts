@@ -8,11 +8,9 @@ export const config = {
     },
     APIFuncionesUrls: {
         baseUrl: 'http://localhost:3002',
-        obtenerPrecioEntradaByFuncionId: (id: number) =>
-            `/formato/precio-entrada/${id}`,
         reservarButacasByIds: '/disponibilidad-butaca/reservar',
-        getDatosFuncionById: (id: number) => `/formato/datos-funcion/${id}`,
-        ocuparButacasByIds: '/formato/ocupar-butacas',
+        getDatosFuncionById: (id: number) => `/funcion/admin/datos-funcion/${id}`,
+        ocuparButacasByIds: '/disponibilidad-butaca/ocupar-butacas',
     },
     APIIntegracionMPUrls: {
         baseUrl: 'https://susanne-tressured-fidel.ngrok-free.dev', //link solo valido para pc rama

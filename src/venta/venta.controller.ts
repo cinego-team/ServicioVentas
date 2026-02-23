@@ -5,20 +5,18 @@ import { DefaultValuePipe, ParseIntPipe } from '@nestjs/common/pipes';
 
 @Controller('venta')
 export class VentaController {
-    constructor(private readonly ventaService: VentaService) {}
+    constructor(private readonly ventaService: VentaService) { }
 
     @Post('abrir-venta')
     abrirVenta(@Body() dato: any) {
         // Extraemos el usuarioId que viene en el body desde el Gateway
-        const usuario = { id: dato.usuarioId }; 
-        
+        const usuario = { id: dato.usuarioId };
+
         // El resto son los datos de la venta
         const ventaInput: VentaInput = {
             funcionId: dato.funcionId,
             disponibilidadButacaIds: dato.disponibilidadButacaIds
         };
-
-        console.log('📦 Procesando en Microservicio para usuario:', usuario.id);
         return this.ventaService.abrirVenta(usuario, ventaInput);
     }
 
@@ -29,6 +27,8 @@ export class VentaController {
 
     @Post('cerrar-venta/:id')
     cerrarVenta(@Param('id') id: number, @Body() data: CerrarVentaInput) {
+        console.log('Cerrando venta con ID:', id);
+        console.log(data);
         return this.ventaService.cerrarVenta(data);
     }
 
