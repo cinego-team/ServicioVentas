@@ -11,7 +11,7 @@ export class EntradaController {
     }
     @Post()
     create(@Body() data: CrearEntradaInputDto) {
-        return this.entradaService.crearEntradasPorDisponibilidadButacaIds(data.disponibilidadButacaIds, data.expiracion);
+        return this.entradaService.crearEntradasPorDisponibilidadButacaIds(data.disponibilidadButacaIds, data.expiracion, data.venta);
     }
 }
 

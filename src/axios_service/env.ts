@@ -3,14 +3,16 @@ export const config = {
         baseUrl: 'http://localhost:3005',
         // En tu archivo de configuración de URLs
         verificarPromocionById: (clienteId: number) =>
-            `/promocion/verificar-promocion?clienteId=${clienteId}`,
+            `/promocion/verificar-promocion/${clienteId}`,
         getPromocionById: (id: number) => `/promocion/admin/${id}`,
     },
     APIFuncionesUrls: {
         baseUrl: 'http://localhost:3002',
         reservarButacasByIds: '/disponibilidad-butaca/reservar',
-        getDatosFuncionById: (id: number) => `/funcion/admin/datos-funcion/${id}`,
-        ocuparButacasByIds: '/disponibilidad-butaca/ocupar-butacas',
+        getDatosFuncionById: (id: number) => `/funcion/admin/${id}`,
+        ocuparButacasByIds: '/disponibilidad-butaca/ocupar',
+        getPrecioEntradaByFuncionId: (funcionId: number) =>
+            `/funcion/precio-entrada/${funcionId}`,
     },
     APIIntegracionMPUrls: {
         baseUrl: 'https://susanne-tressured-fidel.ngrok-free.dev', //link solo valido para pc rama

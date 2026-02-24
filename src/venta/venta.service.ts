@@ -103,10 +103,8 @@ export class VentaService {
             // 2. Buscamos la promocion (CORRECCIÓN: Se envía el clienteId por Query)
             let promocionValida: any = null;
             try {
-                const url = config.APIPromocionesUrls.verificarPromocionById(
-                    user.id,
-                );
-                const res = await axiosAPIPromociones.get(url);
+                console.log("usuaio:", user.id)
+                const res = await axiosAPIPromociones.get(config.APIPromocionesUrls.verificarPromocionById(user.id));
                 promocionValida = res.data;
                 console.log('Promoción aplicada:', promocionValida);
             } catch (error) {
@@ -119,29 +117,30 @@ export class VentaService {
             // 3. Obtenemos el precio (CORRECCIÓN: Se apunta a FormatoController)
             let precioEntradas = 6000;
             try {
-                const resPrecio = await axiosAPIFunciones.get<{
-                    precio: number;
-                }>(
-                    `${config.APIFuncionesUrls.baseUrl}/formato/precio-entrada/${dato.funcionId}`,
+                const resPrecio = await axiosAPIFunciones.get(
+                    config.APIFuncionesUrls.getPrecioEntradaByFuncionId(dato.funcionId),
                 );
                 precioEntradas = resPrecio.data.precio;
+                console.log('Precio por entrada obtenido:', precioEntradas);
             } catch (error) {
                 console.log('Usando precio base 6000');
+                precioEntradas = 6000;
             }
 
             // 4. Calculamos el total
             const cantButacas = dato.disponibilidadButacaIds.length;
-            const desc = promocionValida?.descuento || 0;
+            const desc = promocionValida.porcentajeDescuento || 0;
             let total: number = 0;
 
             if (cantButacas >= 1) {
                 // Se asume desc como decimal (ej: 0.15 para 15%). Si es entero, usar (desc/100)
                 total =
-                    precioEntradas * (1 - desc) +
+                    precioEntradas * (1 - desc / 100) +
                     precioEntradas * (cantButacas - 1);
             } else {
                 throw new BadRequestException('No se seleccionaron butacas');
             }
+            console.log('Total calculado:', total);
 
             // 5. Buscamos datos de la función (CORRECCIÓN: Formateo de fecha y hora)
             let datoFuncion: any;
@@ -164,7 +163,7 @@ export class VentaService {
                 console.log(datoFuncion.horaFuncion)
                 console.log(typeof datoFuncion.horaFuncion)
             } catch (error) {
-                console.log(error)
+                console.log("error")
                 const ahora = new Date();
                 datoFuncion = {
                     titulo: 'Entradas de Cine',
@@ -223,27 +222,35 @@ export class VentaService {
     }
     async cerrarVenta(data: CerrarVentaInput): Promise<void> {
         if (data.status === 'approved') {
+            console.log("incio", data.disponibilidadButacaIds)
+            console.log("busca venta")
             const venta: Venta | null = await this.ventaRepo.findOne({
                 where: {
                     nroVenta: data.ventaId,
                 },
                 relations: ['estadoVenta', 'entradas'],
             });
-
+            console.log("encuentra venta")
+            console.log(venta)
             if (!venta) {
-                throw new InternalServerErrorException('Venta no encontrada');
+                // throw new InternalServerErrorException('Venta no encontrada');
+                return;
             }
 
+            console.log("crea entradas")
             const entradas: Entrada[] =
                 await this.entradaService.crearEntradasPorDisponibilidadButacaIds(
                     data.disponibilidadButacaIds,
                     new Date(data.fechaFuncion),
+                    venta
                 );
-
+            console.log("entradas creadas")
+            console.log(entradas)
             if (!entradas) {
-                throw new InternalServerErrorException(
-                    'Error al crear las entradas',
-                );
+                // throw new InternalServerErrorException(
+                //     'Error al crear las entradas',
+                // );
+                return;
             }
 
             const estadoConfirmada = await this.estadoRepo.findOneBy({
@@ -251,25 +258,27 @@ export class VentaService {
             });
 
             if (!estadoConfirmada) {
-                throw new InternalServerErrorException(
-                    'Estado de venta APROBADA no encontrado',
-                );
+                // throw new InternalServerErrorException(
+                //     'Estado de venta APROBADA no encontrado',
+                // );
+                return;
             }
-
+            console.log("actualiza venta")
             venta.fecha = new Date();
             venta.estadoVenta = estadoConfirmada;
             venta.entradas = entradas;
             await this.ventaRepo.save(venta);
-
+            console.log("venta actualizada")
             //ocupar las butacas
-            axiosAPIFunciones.post(config.APIFuncionesUrls.ocuparButacasByIds, {
-                disponibilidaButacasIds: data.disponibilidadButacaIds, // Sin el envoltorio 'body'
+            console.log(data.disponibilidadButacaIds)
+            axiosAPIFunciones.patch(config.APIFuncionesUrls.ocuparButacasByIds, {
+                disponibilidadButacasIds: data.disponibilidadButacaIds, // Sin el envoltorio 'body'
             });
 
             //obtener tokens de entrada para generar qr
-            const textosQR: string[] = entradas.map((entrada) => {
-                return entrada.token;
-            });
+            // const textosQR: string[] = entradas.map((entrada) => {
+            //     return entrada.token;
+            // });
 
             //obtener email de usuario
             const datosUsuario: DatosUsuario = await axiosAPIUsuarios.get(
@@ -277,15 +286,15 @@ export class VentaService {
             );
 
             //enviar mail con datos de envío y contenido.
-            axiosAPIEnviarMails.post(config.APIEnviarMailsUrls.sendMail, {
-                body: {
-                    titulo: data.titulo,
-                    fecha: data.fechaFuncion.split('T')[0],
-                    hora: data.horaFuncion.split('T')[1],
-                    destinatario: datosUsuario.email,
-                    qrs: textosQR,
-                },
-            });
+            // axiosAPIEnviarMails.post(config.APIEnviarMailsUrls.sendMail, {
+            //     body: {
+            //         titulo: data.titulo,
+            //         fecha: data.fechaFuncion.split('T')[0],
+            //         hora: data.horaFuncion.split('T')[1],
+            //         destinatario: datosUsuario.email,
+            //         qrs: textosQR,
+            //     },
+            // });
         }
     }
 

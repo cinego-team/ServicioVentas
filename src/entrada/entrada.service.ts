@@ -13,19 +13,21 @@ export class EntradaService {
 
     async crearEntradasPorDisponibilidadButacaIds(
         disponibilidadButacaIds: number[],
-        expiracion: Date
+        expiracion: Date,
+        venta: any
     ): Promise<Entrada[]> {
         const entradas: Entrada[] = [];
         for (const disponibilidadButacaId of disponibilidadButacaIds) {
             const token: string = randomBytes(16).toString('hex');
 
-
+            console.log("crear entrada")
+            console.log(venta)
             // Crear la instancia
-            const entrada = this.entradaRepo.create({ token, esUsado: false, disponibilidadButacaId, expiracion });
+            const entrada = this.entradaRepo.create({ token, esUsado: false, disponibilidadButacaId, expiracion, venta });
 
             // Guardarla (ahora tendrá un id)
             await this.entradaRepo.save(entrada);
-
+            console.log("entrada creada");
             console.log(entrada);
             entradas.push(entrada);
         }
