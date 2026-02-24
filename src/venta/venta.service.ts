@@ -135,7 +135,7 @@ export class VentaService {
             if (cantButacas >= 1) {
                 // Se asume desc como decimal (ej: 0.15 para 15%). Si es entero, usar (desc/100)
                 total =
-                    precioEntradas * (1 - desc / 100) +
+                    Math.round(precioEntradas * (1 - desc / 100)) +
                     precioEntradas * (cantButacas - 1);
             } else {
                 throw new BadRequestException('No se seleccionaron butacas');
