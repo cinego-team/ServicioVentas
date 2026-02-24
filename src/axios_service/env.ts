@@ -20,11 +20,15 @@ export const config = {
     },
     APIEnviarMailsUrls: {
         baseUrl: 'http://localhost:3006',
-        sendMail: '/mails/send',
+        sendMail: '/mail/send',
     },
     APIUsuariosUrls: {
         baseUrl: 'http://localhost:3004',
         getDatosClienteById: (id: number) =>
             `/usuario/admin/datos-cliente/${id}`,
     },
+    APIPeliculasUrls: {
+        baseUrl: 'http://localhost:3001',
+        getPeliculaById: (id: number) => `/pelicula/admin/${id}`,
+    }
 };

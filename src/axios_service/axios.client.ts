@@ -35,3 +35,10 @@ export const axiosAPIUsuarios = axios.create({
         'Content-Type': 'application/json',
     },
 });
+
+export const axiosAPIPeliculas = axios.create({
+    baseURL: config.APIPeliculasUrls.baseUrl,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});

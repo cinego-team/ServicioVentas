@@ -23,6 +23,7 @@ import {
     axiosAPIIntegracionMP,
     axiosAPIPromociones,
     axiosAPIUsuarios,
+    axiosAPIPeliculas,
 } from '../axios_service/axios.client';
 import { config } from '../axios_service/env';
 import { EstadoVenta } from 'src/entities/estadoVenta.entity';
@@ -103,7 +104,6 @@ export class VentaService {
             // 2. Buscamos la promocion (CORRECCIÓN: Se envía el clienteId por Query)
             let promocionValida: any = null;
             try {
-                console.log("usuaio:", user.id)
                 const res = await axiosAPIPromociones.get(config.APIPromocionesUrls.verificarPromocionById(user.id));
                 promocionValida = res.data;
                 console.log('Promoción aplicada:', promocionValida);
@@ -145,23 +145,21 @@ export class VentaService {
             // 5. Buscamos datos de la función (CORRECCIÓN: Formateo de fecha y hora)
             let datoFuncion: any;
             try {
-                console.log("funcion id", dato.funcionId)
-                console.log("5.1")
                 const responseFuncion = await axiosAPIFunciones.get(
                     config.APIFuncionesUrls.getDatosFuncionById(dato.funcionId),
                 );
-                console.log("5.2")
                 const dataFuncion = responseFuncion.data;
+                console.log("datos funcion", dataFuncion)
+                const responsePelicula = await axiosAPIPeliculas.get(
+                    config.APIPeliculasUrls.getPeliculaById(dataFuncion.peliculaId),
+                );
+                const dataPelicula = responsePelicula.data;
                 datoFuncion = {
-                    titulo: 'Entrada de Cine',
+                    titulo: dataPelicula.titulo,
                     fechaFuncion: new Date(dataFuncion.fecha).toISOString().split('T')[0],
                     horaFuncion: dataFuncion.hora,
                 };
-                console.log("pase aca")
-                console.log(datoFuncion.fechaFuncion)
-                console.log(typeof datoFuncion.fechaFuncion)
-                console.log(datoFuncion.horaFuncion)
-                console.log(typeof datoFuncion.horaFuncion)
+                console.log('Datos de función obtenidos:', datoFuncion);
             } catch (error) {
                 console.log("error")
                 const ahora = new Date();
@@ -199,6 +197,7 @@ export class VentaService {
                     fechaFuncion: datoFuncion.fechaFuncion,
                     horaFuncion: datoFuncion.horaFuncion,
                     titulo: datoFuncion.titulo,
+                    descripcion: "CineGo - Compra de entradas",
                     monto: ventaGuardada.total,
                     ventaId: ventaGuardada.nroVenta,
                     usuarioId: user.id,
@@ -222,16 +221,12 @@ export class VentaService {
     }
     async cerrarVenta(data: CerrarVentaInput): Promise<void> {
         if (data.status === 'approved') {
-            console.log("incio", data.disponibilidadButacaIds)
-            console.log("busca venta")
             const venta: Venta | null = await this.ventaRepo.findOne({
                 where: {
                     nroVenta: data.ventaId,
                 },
                 relations: ['estadoVenta', 'entradas'],
             });
-            console.log("encuentra venta")
-            console.log(venta)
             if (!venta) {
                 // throw new InternalServerErrorException('Venta no encontrada');
                 return;
@@ -270,31 +265,31 @@ export class VentaService {
             await this.ventaRepo.save(venta);
             console.log("venta actualizada")
             //ocupar las butacas
-            console.log(data.disponibilidadButacaIds)
             axiosAPIFunciones.patch(config.APIFuncionesUrls.ocuparButacasByIds, {
                 disponibilidadButacasIds: data.disponibilidadButacaIds, // Sin el envoltorio 'body'
             });
 
-            //obtener tokens de entrada para generar qr
-            // const textosQR: string[] = entradas.map((entrada) => {
-            //     return entrada.token;
-            // });
+            // obtener tokens de entrada para generar qr
+            const textosQR: string[] = entradas.map((entrada) => {
+                return entrada.token;
+            });
 
             //obtener email de usuario
-            const datosUsuario: DatosUsuario = await axiosAPIUsuarios.get(
+            const datosUsiarioResponse = await axiosAPIUsuarios.get(
                 config.APIUsuariosUrls.getDatosClienteById(data.usuarioId),
             );
+            const datosUsuario: DatosUsuario = datosUsiarioResponse.data;
 
             //enviar mail con datos de envío y contenido.
-            // axiosAPIEnviarMails.post(config.APIEnviarMailsUrls.sendMail, {
-            //     body: {
-            //         titulo: data.titulo,
-            //         fecha: data.fechaFuncion.split('T')[0],
-            //         hora: data.horaFuncion.split('T')[1],
-            //         destinatario: datosUsuario.email,
-            //         qrs: textosQR,
-            //     },
-            // });
+            axiosAPIEnviarMails.post(config.APIEnviarMailsUrls.sendMail, {
+                body: {
+                    titulo: data.titulo,
+                    fecha: data.fechaFuncion,
+                    hora: data.horaFuncion,
+                    destinatario: datosUsuario.email,
+                    qrs: textosQR,
+                },
+            });
         }
     }
 
