@@ -5,7 +5,7 @@ import { DefaultValuePipe, ParseIntPipe } from '@nestjs/common/pipes';
 
 @Controller('venta')
 export class VentaController {
-    constructor(private readonly ventaService: VentaService) { }
+    constructor(private readonly ventaService: VentaService) {}
 
     @Post('abrir-venta')
     abrirVenta(@Body() dato: any) {
@@ -15,7 +15,7 @@ export class VentaController {
         // El resto son los datos de la venta
         const ventaInput: VentaInput = {
             funcionId: dato.funcionId,
-            disponibilidadButacaIds: dato.disponibilidadButacaIds
+            disponibilidadButacaIds: dato.disponibilidadButacaIds,
         };
         return this.ventaService.abrirVenta(usuario, ventaInput);
     }
@@ -27,8 +27,6 @@ export class VentaController {
 
     @Post('cerrar-venta/:id')
     cerrarVenta(@Param('id') id: number, @Body() data: CerrarVentaInput) {
-        console.log('Cerrando venta con ID:', id);
-        console.log(data);
         return this.ventaService.cerrarVenta(data);
     }
 
@@ -44,9 +42,22 @@ export class VentaController {
 
     @Get('admin/reportes/peliculas-rango-ventas/trimestral')
     getPeliculasPorRangoVentasTrimestral(
-        @Query('trimestre', new DefaultValuePipe(Math.ceil((new Date().getMonth() + 1) / 3)), ParseIntPipe) trimestre: number,
-        @Query('anio', new DefaultValuePipe(new Date().getFullYear()), ParseIntPipe) anio: number,
+        @Query(
+            'trimestre',
+            new DefaultValuePipe(Math.ceil((new Date().getMonth() + 1) / 3)),
+            ParseIntPipe,
+        )
+        trimestre: number,
+        @Query(
+            'anio',
+            new DefaultValuePipe(new Date().getFullYear()),
+            ParseIntPipe,
+        )
+        anio: number,
     ) {
-        return this.ventaService.getPeliculasPorRangoVentasTrimestral(trimestre, anio);
+        return this.ventaService.getPeliculasPorRangoVentasTrimestral(
+            trimestre,
+            anio,
+        );
     }
 }

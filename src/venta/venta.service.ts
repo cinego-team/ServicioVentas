@@ -38,61 +38,12 @@ export class VentaService {
         private readonly ventaRepo: Repository<Venta>,
         @InjectRepository(EstadoVenta)
         private readonly estadoRepo: Repository<EstadoVenta>,
-    ) { }
+    ) {}
 
-    // Listar todas las ventas
-    /*
-    async findAll(): Promise<VentaResponse[]> {
-        const ventas = await this.ventaRepo.find({ relations: ['entradas'] });
-
-        return ventas.map((venta) => ({
-            nroVenta: venta.nroVenta,
-            fecha: venta.fecha,
-            hora: new Date(venta.hora),
-            total: venta.total,
-            promocionId: venta.promocionId,
-            entradas: venta.entradas.map(
-                ({ id, codigoSeguridad, disponibilidadButacaId }) => ({
-                    id,
-                    codigoSeguridad,
-                    disponibilidaButaca: disponibilidadButacaId,
-                }),
-            ),
-        }));
-    }
-        
-
-    // Obtener venta por ID
-
-    async getVentaById(id: number): Promise<VentaResponse> {
-        const venta = await this.ventaRepo.findOne({
-            where: { nroVenta: id },
-            relations: ['entradas'],
-        });
-        if (!venta) throw new BadRequestException('Venta no encontrada');
-
-        return {
-            nroVenta: venta.nroVenta,
-            fecha: venta.fecha,
-            hora: new Date(venta.hora),
-            total: venta.total,
-            promocionId: venta.promocionId,
-            entradas: venta.entradas.map(
-                ({ id, codigoSeguridad, disponibilidadButacaId }) => ({
-                    id,
-                    codigoSeguridad,
-                    disponibilidaButaca: disponibilidadButacaId,
-                }),
-            ),
-        };
-    }
-        */
     async abrirVenta(user, dato: VentaInput): Promise<VentaResponse> {
         if (!user || !user.id) {
             throw new BadRequestException('Usuario no autenticado');
         }
-
-        console.log("ABRIENDO VENTA")
 
         try {
             // 1. Reservo las butacas
@@ -104,13 +55,11 @@ export class VentaService {
             // 2. Buscamos la promocion (CORRECCIÓN: Se envía el clienteId por Query)
             let promocionValida: any = null;
             try {
-                const res = await axiosAPIPromociones.get(config.APIPromocionesUrls.verificarPromocionById(user.id));
-                promocionValida = res.data;
-                console.log('Promoción aplicada:', promocionValida);
-            } catch (error) {
-                console.log(
-                    'Cliente sin promo o error, continuando sin descuento...',
+                const res = await axiosAPIPromociones.get(
+                    config.APIPromocionesUrls.verificarPromocionById(user.id),
                 );
+                promocionValida = res.data;
+            } catch (error) {
                 promocionValida = { descuento: 0, id: null };
             }
 
@@ -118,12 +67,12 @@ export class VentaService {
             let precioEntradas = 6000;
             try {
                 const resPrecio = await axiosAPIFunciones.get(
-                    config.APIFuncionesUrls.getPrecioEntradaByFuncionId(dato.funcionId),
+                    config.APIFuncionesUrls.getPrecioEntradaByFuncionId(
+                        dato.funcionId,
+                    ),
                 );
                 precioEntradas = resPrecio.data.precio;
-                console.log('Precio por entrada obtenido:', precioEntradas);
             } catch (error) {
-                console.log('Usando precio base 6000');
                 precioEntradas = 6000;
             }
 
@@ -140,7 +89,6 @@ export class VentaService {
             } else {
                 throw new BadRequestException('No se seleccionaron butacas');
             }
-            console.log('Total calculado:', total);
 
             // 5. Buscamos datos de la función (CORRECCIÓN: Formateo de fecha y hora)
             let datoFuncion: any;
@@ -149,19 +97,21 @@ export class VentaService {
                     config.APIFuncionesUrls.getDatosFuncionById(dato.funcionId),
                 );
                 const dataFuncion = responseFuncion.data;
-                console.log("datos funcion", dataFuncion)
+
                 const responsePelicula = await axiosAPIPeliculas.get(
-                    config.APIPeliculasUrls.getPeliculaById(dataFuncion.peliculaId),
+                    config.APIPeliculasUrls.getPeliculaById(
+                        dataFuncion.peliculaId,
+                    ),
                 );
                 const dataPelicula = responsePelicula.data;
                 datoFuncion = {
                     titulo: dataPelicula.titulo,
-                    fechaFuncion: new Date(dataFuncion.fecha).toISOString().split('T')[0],
+                    fechaFuncion: new Date(dataFuncion.fecha)
+                        .toISOString()
+                        .split('T')[0],
                     horaFuncion: dataFuncion.hora,
                 };
-                console.log('Datos de función obtenidos:', datoFuncion);
             } catch (error) {
-                console.log("error")
                 const ahora = new Date();
                 datoFuncion = {
                     titulo: 'Entradas de Cine',
@@ -178,8 +128,8 @@ export class VentaService {
                 throw new InternalServerErrorException('Estado no encontrado');
 
             const nuevaVenta = this.ventaRepo.create({
-                fecha: new Date(), // <-- SOLUCIONA: null value violates not-null constraint
-                total: isNaN(total) ? precioEntradas * cantButacas : total, // <-- SOLUCIONA: NaN
+                fecha: new Date(),
+                total: isNaN(total) ? precioEntradas * cantButacas : total,
                 promocionId: promocionValida?.id || null,
                 estadoVenta: estadoPendiente,
                 cliente: user.id,
@@ -197,7 +147,7 @@ export class VentaService {
                     fechaFuncion: datoFuncion.fechaFuncion,
                     horaFuncion: datoFuncion.horaFuncion,
                     titulo: datoFuncion.titulo,
-                    descripcion: "CineGo - Compra de entradas",
+                    descripcion: 'CineGo - Compra de entradas',
                     monto: ventaGuardada.total,
                     ventaId: ventaGuardada.nroVenta,
                     usuarioId: user.id,
@@ -228,23 +178,21 @@ export class VentaService {
                 relations: ['estadoVenta', 'entradas'],
             });
             if (!venta) {
-                // throw new InternalServerErrorException('Venta no encontrada');
+                throw new InternalServerErrorException('Venta no encontrada');
                 return;
             }
 
-            console.log("crea entradas")
             const entradas: Entrada[] =
                 await this.entradaService.crearEntradasPorDisponibilidadButacaIds(
                     data.disponibilidadButacaIds,
                     new Date(data.fechaFuncion),
-                    venta
+                    venta,
                 );
-            console.log("entradas creadas")
-            console.log(entradas)
+
             if (!entradas) {
-                // throw new InternalServerErrorException(
-                //     'Error al crear las entradas',
-                // );
+                throw new InternalServerErrorException(
+                    'Error al crear las entradas',
+                );
                 return;
             }
 
@@ -253,21 +201,24 @@ export class VentaService {
             });
 
             if (!estadoConfirmada) {
-                // throw new InternalServerErrorException(
-                //     'Estado de venta APROBADA no encontrado',
-                // );
+                throw new InternalServerErrorException(
+                    'Estado de venta APROBADA no encontrado',
+                );
                 return;
             }
-            console.log("actualiza venta")
+
             venta.fecha = new Date();
             venta.estadoVenta = estadoConfirmada;
             venta.entradas = entradas;
             await this.ventaRepo.save(venta);
-            console.log("venta actualizada")
+
             //ocupar las butacas
-            axiosAPIFunciones.patch(config.APIFuncionesUrls.ocuparButacasByIds, {
-                disponibilidadButacasIds: data.disponibilidadButacaIds, // Sin el envoltorio 'body'
-            });
+            axiosAPIFunciones.patch(
+                config.APIFuncionesUrls.ocuparButacasByIds,
+                {
+                    disponibilidadButacasIds: data.disponibilidadButacaIds, // Sin el envoltorio 'body'
+                },
+            );
 
             // obtener tokens de entrada para generar qr
             const textosQR: string[] = entradas.map((entrada) => {
@@ -319,7 +270,8 @@ export class VentaService {
         const mesActual = ahora.getMonth() + 1;
         const anioActual = ahora.getFullYear();
 
-        return await this.ventaRepo.query(`
+        return await this.ventaRepo.query(
+            `
             SELECT 
                 TRIM(TO_CHAR(v.fecha_funcion::date, 'Day')) AS dia_semana,
                 COUNT(e.id) AS cantidad_entradas
@@ -340,7 +292,9 @@ export class VentaService {
                     WHEN 'Saturday' THEN 6
                     WHEN 'Sunday' THEN 7
                 END
-        `, ['APROBADA', mesActual, anioActual]);
+        `,
+            ['APROBADA', mesActual, anioActual],
+        );
     }
 
     //reporte trimestral de peliculas por rango de ventas
@@ -349,7 +303,8 @@ export class VentaService {
         anio: number,
     ): Promise<any[]> {
         // Devuelve los 4 trimestres del año con sus cantidades
-        const result = await this.ventaRepo.query(`
+        const result = await this.ventaRepo.query(
+            `
             SELECT 
                 EXTRACT(QUARTER FROM v.fecha_funcion::date)::text AS trimestre,
                 COUNT(e.id) AS cantidad_ventas
@@ -360,7 +315,9 @@ export class VentaService {
             AND EXTRACT(YEAR FROM v.fecha_funcion::date) = $2
             GROUP BY EXTRACT(QUARTER FROM v.fecha_funcion::date)
             ORDER BY trimestre
-        `, ['APROBADA', anio]);
+        `,
+            ['APROBADA', anio],
+        );
 
         return result;
     }
